@@ -201,7 +201,7 @@ def nn_train(wechat_name, param):
 				"{:.5f}".format(acc))
 			itchat.send("Iter " + str(step*batch_size) + ", Minibatch Loss= " + \
 				"{:.6f}".format(loss) + ", Training Accuracy= " + \
-						"{:.5f}".format(acc), wechat_name)
+						"{:.5f}".format(acc), 'filehelper')
 		else:
 			summary, _ = sess.run([merged, optimizer], feed_dict = {x: batch_x, y_: batch_y, keep_prob: 1.})
 			train_writer.add_summary(summary, step)
@@ -209,7 +209,7 @@ def nn_train(wechat_name, param):
 		with lock:
 			run_state = running
 	print("Optimization Finished!")
-	itchat.send("Optimization Finished!", wechat_name)
+	itchat.send("Optimization Finished!", 'filehelper')
 
 	# Calculate accuracy for 256 mnist test images
 	summary, acc = sess.run([merged, accuracy], feed_dict = 
@@ -243,7 +243,7 @@ def chat_trigger(msg):
 			param = msg['Text'].split()
 			key, value = param
 			print(key, value)
-			if key == 'lr': 
+			if key == 'lr':
 				learning_rate = float(value)
 			elif key == 'ti':
 				training_iters = int(value)
