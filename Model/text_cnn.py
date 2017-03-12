@@ -5,7 +5,6 @@ import multiprocessing
 import gensim
 from gensim.models import word2vec
 from gensim.corpora import TextCorpus, MmCorpus, Dictionary
-from sklearn.metrics import roc_auc_score
 
 BASE_DIR = randolph.cur_file_dir()
 TEXT_DATA_DIR = BASE_DIR + '/content.txt' 
