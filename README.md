@@ -17,3 +17,11 @@ It is slightly simplified implementation of Kim's [Convolutional Neural Networks
 
 - [Convolutional Neural Networks for Sentence Classification](http://arxiv.org/abs/1408.5882)
 - [A Sensitivity Analysis of (and Practitioners' Guide to) Convolutional Neural Networks for Sentence Classification](http://arxiv.org/abs/1510.03820)
+
+## About Me
+
+黄威，Randolph
+
+School of Computer Science and Technology, University of Science and Technology of China
+
+Email: chinawolfman@hotmail.com
