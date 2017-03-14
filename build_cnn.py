@@ -1,17 +1,12 @@
 import os
 import randolph
-import gensim
-import logging
 import time
 import datetime
 import tensorflow as tf
-import numpy as np
 from text_cnn import TextCNN
+import data_helpers
 from tensorflow.contrib import learn
-from gensim import corpora, models, similarities
-from gensim.models import word2vec
-from gensim.corpora import TextCorpus, MmCorpus, Dictionary
-from tflearn.data_utils import to_categorical, pad_sequences
+
 
 # Parameters
 # ==================================================
@@ -20,8 +15,6 @@ FLAGS = tf.flags.FLAGS
 BASE_DIR = randolph.cur_file_dir()
 
 # Data loading params
-tf.flags.DEFINE_string("text_dir", BASE_DIR + '/content.txt', "Data source for texts.")
-tf.flags.DEFINE_string("vocabulary_data_dir", BASE_DIR + '/math.dict', "Data source for vocabulary dictionary.")
 tf.flags.DEFINE_string("training_data_file", BASE_DIR + '/Model1_Training.txt', "Data source for the training data.")
 tf.flags.DEFINE_string("test_data_file", BASE_DIR + '/Model1_Test.txt', "Data source for the test data.")
 
@@ -45,120 +38,24 @@ tf.flags.DEFINE_integer("num_checkpoints", 5, "Number of checkpoints to store (d
 
 # Misc Parameters
 tf.flags.DEFINE_boolean("allow_soft_placement", True, "Allow device soft device placement")
-tf.flags.DEFINE_boolean("log_device_placement", False, "Log placement of ops on devices")
-
-def max_seq_len_cal(content_indexlist):
-	result = 0
-	for item in content_indexlist:
-		if len(item) > result:
-			result = len(item)
-	return result
-
-def batch_iter(data, batch_size, num_epochs, shuffle=True):
-	"""
-	Generates a batch iterator for a dataset.
-	"""
-	data = np.array(data)
-	data_size = len(data)
-	num_batches_per_epoch = int((len(data)-1)/batch_size) + 1
-	for epoch in range(num_epochs):
-		# Shuffle the data at each epoch
-		if shuffle:
-			shuffle_indices = np.random.permutation(np.arange(data_size))
-			shuffled_data = data[shuffle_indices]
-		else:
-			shuffled_data = data
-		for batch_num in range(num_batches_per_epoch):
-			start_index = batch_num * batch_size
-			end_index = min((batch_num + 1) * batch_size, data_size)
-			yield shuffled_data[start_index:end_index]
-
-def data_word2vec(inputFile, dictionary):
-	def token_to_index(content, dictionary):
-		list = []
-		for item in content:
-			if item != '<end>':
-				list.append(dictionary.token2id[item])
-		return list
-	
-	with open(inputFile) as fin:
-		labels = []
-		front_content_indexlist = []
-		behind_content_indexlist = []
-		for index, eachline in enumerate(fin):
-			front_content = []
-			behind_content = []
-			line = eachline.strip().split('\t')
-			label = line[2]
-			content = line[3].strip().split(' ')
-			
-			end_tag = False
-			for item in content:
-				if item == '<end>':
-					end_tag = True
-				if end_tag == False:
-					front_content.append(item)
-				if end_tag == True:
-					behind_content.append(item)
-					
-			labels.append(label)
-			
-			front_content_indexlist.append(token_to_index(front_content, dictionary))
-			behind_content_indexlist.append(token_to_index(behind_content[1:], dictionary))
-		total_line = index + 1
-		
-	class Data:
-		def __init__(self, total_line, labels, front_content_indexlist, behind_content_indexlist):
-			self.number = total_line
-			self.labels = labels
-			self.front_tokenindex = front_content_indexlist
-			self.behind_tokenindex = behind_content_indexlist
-			
-	return Data(total_line, labels, front_content_indexlist, behind_content_indexlist)
+tf.flags.DEFINE_boolean("log_device_placement", False, "Log placement of ops on devices")	
 
 def main():
-	sentences = word2vec.LineSentence(FLAGS.text_dir)
-	my_dict = Dictionary.load(FLAGS.vocabulary_data_dir)
-	vocab_size = len(my_dict.items())
-
-	print('---------------------------------------------------')
-	print('Processing text dataset:')
+	print('Loading data...')
 	
-	Training_Data = data_word2vec(inputFile=FLAGS.training_data_file, dictionary=my_dict) 
-	Test_Data = data_word2vec(inputFile=FLAGS.test_data_file, dictionary=my_dict)
-	
-#	training_max_seq_len = max(max_seq_len_cal(Training_Data.front_tokenindex), max_seq_len_cal(Training_Data.behind_tokenindex))
-#	test_max_seq_len = max(max_seq_len_cal(Test_Data.front_tokenindex), max_seq_len_cal(Training_Data.behind_tokenindex))
-#	max_seq_len = max(training_max_seq_len, test_max_seq_len)
-#	print('Max Sequence Length is: ' max_seq_len)
+	print('Training data processing...')
+	x_train_front, x_train_behind, y_train, max_seq_len_trainging = \
+		data_helpers.load_data_and_labels(FLAGS.training_data_file, FLAGS.MAX_SEQUENCE_LENGTH, FLAGS.embedding_dim)
 
-	print('---------------------------------------------------')
-	print('Found %s training texts.' % Training_Data.number)
-	data_training_front = pad_sequences(Training_Data.front_tokenindex, maxlen=FLAGS.MAX_SEQUENCE_LENGTH, value=0.)
-	data_training_behind = pad_sequences(Training_Data.behind_tokenindex, maxlen=FLAGS.MAX_SEQUENCE_LENGTH, value=0.)
-	labels_training = to_categorical(Training_Data.labels, nb_classes=2)	
-	print('Shape of training data front tensor:', data_training_front.shape)
-	print('Shape of training data behind tensor:', data_training_behind.shape)
-	print('Shape of training label tensor:', labels_training.shape)
-
-	print('---------------------------------------------------')
-	print('Found %s test texts.' % Test_Data.number)
-	data_test_front = pad_sequences(Test_Data.front_tokenindex, maxlen=FLAGS.MAX_SEQUENCE_LENGTH, value=0.)
-	data_test_behind = pad_sequences(Test_Data.behind_tokenindex, maxlen=FLAGS.MAX_SEQUENCE_LENGTH, value=0.)
-	labels_test = to_categorical(Test_Data.labels, nb_classes=2)
-	print('Shape of test data front tensor:', data_test_front.shape)
-	print('Shape of test data behind tensor:', data_test_behind.shape)
-	print('Shape of test label tensor:', labels_test.shape)
-	print('---------------------------------------------------')
-
-	x_train_front = data_training_front
-	x_train_behind = data_training_behind
-	y_train = labels_training
+	print('Test data processing...')
+	x_test_front, x_test_behind, y_test, max_seq_len_test = \
+		data_helpers.load_data_and_labels(FLAGS.test_data_file, FLAGS.MAX_SEQUENCE_LENGTH, FLAGS.embedding_dim)
 	
-	x_test_front = data_test_front
-	x_test_behind = data_test_behind
-	y_test = labels_test
+	print('Max Sequence length should at least be:', max(max_seq_len_trainging, max_seq_len_test))
 	
+	vocab_size = data_helpers.load_vocab_size()
+	word2vec_matrix = data_helpers.load_word2vec_matrix(vocab_size, FLAGS.embedding_dim)
+
 	# Training
 	with tf.Graph().as_default():
 		session_conf = tf.ConfigProto(
@@ -173,7 +70,8 @@ def main():
 					embedding_size=FLAGS.embedding_dim,
 					filter_sizes=list(map(int, FLAGS.filter_sizes.split(","))),
 					num_filters=FLAGS.num_filters,
-					l2_reg_lambda=FLAGS.l2_reg_lambda)
+					l2_reg_lambda=FLAGS.l2_reg_lambda,
+					word2vec_matrix=word2vec_matrix)
 			
 			# Define Training procedure
 			global_step = tf.Variable(0, name = "global_step", trainable = False)
@@ -257,7 +155,7 @@ def main():
 							writer.add_summary(summaries, step)
 
 			# Generate batches
-			batches = batch_iter(
+			batches = data_helpers.batch_iter(
 					list(zip(x_train_front, x_train_behind, y_train)), FLAGS.batch_size, FLAGS.num_epochs)
 			# Training loop. For each batch...
 			for batch in batches:
