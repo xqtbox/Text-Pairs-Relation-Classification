@@ -6,26 +6,6 @@ import gensim
 from gensim.models import word2vec
 from gensim.corpora import TextCorpus, MmCorpus, Dictionary
 
-BASE_DIR = randolph.cur_file_dir()
-TEXT_DATA_DIR = BASE_DIR + '/content.txt' 
-WORD2VEC_DIR = BASE_DIR + '/math.model'
-DICTIONARY_DIR = BASE_DIR + '/math.dict'
-
-def word2vec_train(inputFile, outputFile, dictionary, vocab_size, embedding_size):
-	sentences = word2vec.LineSentence(inputFile)
-	my_dict = Dictionary.load(dictionary)
-	
-	# sg=0 -> CBOW model; sg=1 -> skip-gram model.
-	model = gensim.models.Word2Vec(sentences, size=embedding_size, min_count=0,
-																 sg=0, workers=multiprocessing.cpu_count())
-	model.save(outputFile)
-	
-	Vector = np.zeros([vocab_size, embedding_size])
-	for value, key in my_dict.items():
-		Vector[value] = model[key]
-
-	return Vector
-
 class TextCNN(object):
 	"""
 	A CNN for text classification.
@@ -33,7 +13,7 @@ class TextCNN(object):
 	"""
 	def __init__(
 		self, sequence_length, num_classes, vocab_size,
-		embedding_size, filter_sizes, num_filters, l2_reg_lambda=0.0):
+		embedding_size, filter_sizes, num_filters, l2_reg_lambda=0.0, word2vec_matrix=None):
 
 			# Placeholders for input, output and dropout
 			self.input_x_front = tf.placeholder(tf.int32, [None, sequence_length], name="input_x_front")
@@ -44,7 +24,7 @@ class TextCNN(object):
 			# Keeping track of l2 regularization loss (optional)
 			l2_loss = tf.constant(0.0)
 
-			Vector = word2vec_train(TEXT_DATA_DIR, WORD2VEC_DIR, DICTIONARY_DIR, vocab_size, embedding_size)
+			# Vector = load_word2vec(TEXT_DATA_DIR, WORD2VEC_DIR, DICTIONARY_DIR, vocab_size, embedding_size)
 
 			# Embedding layer
 			with tf.device('/cpu:0'), tf.name_scope("embedding"):
@@ -54,7 +34,7 @@ class TextCNN(object):
 						name="W")
 				# Vector 是通过自己的语料库训练而得到的词向量。
 				# input_x_front 和 input_x_behind 共用 Vector。
-#                    self.V = tf.Variable(Vector, name="W")
+				self.V = tf.Variable(word2vec_matrix, name="V")
 				self.embedded_chars_front = tf.nn.embedding_lookup(self.W, self.input_x_front)
 				self.embedded_chars_behind = tf.nn.embedding_lookup(self.W, self.input_x_behind)
 				
@@ -146,4 +126,4 @@ class TextCNN(object):
 
 			# AUC
 			with tf.name_scope("AUC"):
-				 self.AUC = tf.contrib.metrics.streaming_auc(self.predictions, tf.argmax(self.input_y, 1))
+				self.AUC = tf.contrib.metrics.streaming_auc(self.predictions, tf.argmax(self.input_y, 1))
