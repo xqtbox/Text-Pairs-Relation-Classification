@@ -54,7 +54,7 @@ def main():
 	print('Max Sequence length should at least be:', max(max_seq_len_trainging, max_seq_len_test))
 	
 	vocab_size = data_helpers.load_vocab_size()
-	word2vec_matrix = data_helpers.load_word2vec_matrix(vocab_size, FLAGS.embedding_dim)
+	pretrained_word2vec_matrix = data_helpers.load_word2vec_matrix(vocab_size, FLAGS.embedding_dim)
 
 	# Training
 	with tf.Graph().as_default():
@@ -71,7 +71,7 @@ def main():
 					filter_sizes=list(map(int, FLAGS.filter_sizes.split(","))),
 					num_filters=FLAGS.num_filters,
 					l2_reg_lambda=FLAGS.l2_reg_lambda,
-					word2vec_matrix=word2vec_matrix)
+					pretrained_embedding=pretrained_word2vec_matrix)
 			
 			# Define Training procedure
 			global_step = tf.Variable(0, name = "global_step", trainable = False)
