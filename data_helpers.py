@@ -2,17 +2,11 @@ import numpy as np
 import gensim
 import randolph
 import multiprocessing
-import matplotlib.patheffects as PathEffects
 from collections import Counter
 from gensim import corpora, models, similarities
 from gensim.models import word2vec
 from gensim.corpora import TextCorpus, MmCorpus, Dictionary
 from tflearn.data_utils import to_categorical, pad_sequences
-from sklearn.manifold import TSNE
-from pylab import mpl
-mpl.rcParams['font.sans-serif'] = ['FangSong'] # 指定默认字体
-mpl.rcParams['axes.unicode_minus'] = False # 解决保存图像是负号'-'显示为方块的问题
-import matplotlib.pyplot as plt
 
 BASE_DIR = randolph.cur_file_dir()
 TEXT_DIR = BASE_DIR + '/content.txt'
@@ -127,42 +121,6 @@ def load_data_and_labels(data_file, MAX_SEQUENCE_LENGTH, EMBEDDING_SIZE):
 def load_vocab_size(vocab_data_file=VOCABULARY_DICT_DIR):
     vocab_dict = Dictionary.load(vocab_data_file)
     return len(vocab_dict.items())
-
-# pretrained_word2vec_matrix = load_word2vec_matrix(load_vocab_size(), embedding_size=128)
-# print(pretrained_word2vec_matrix)
-# print(type(pretrained_word2vec_matrix))
-# print(pretrained_word2vec_matrix.shape)
-
-def plot_word2vec():
-    model = gensim.models.Word2Vec.load(WORD2VEC_DIR)
-    X = []
-    Y = []
-    for index, item in enumerate(model.wv.vocab):
-        X.append(model[item])
-        Y.append(item)
-    tsne = TSNE(n_components=2)
-    #print(tsne)
-    X_tsne = tsne.fit_transform(X)
-    f = plt.figure(figsize=(50, 50))
-    ax = plt.subplot(aspect='equal')
-    sc = ax.scatter(X_tsne[:, 0], X_tsne[:, 1], lw=0, s=40)
-    txts = []
-    for i in range(len(Y)):
-        # Position of each label.
-        if i % 20 == 0:
-            txt = ax.text(X_tsne[i,0], X_tsne[i,1], Y[i], fontsize=10)
-            txt.set_path_effects([
-                PathEffects.Stroke(linewidth=5, foreground="w"),
-                PathEffects.Normal()])
-            txts.append(txt)
-#    sc = ax.scatter(X_tsne[:,0], X_tsne[:,1], lw=0, s=40)
-    plt.xlim(-25, 25)
-    plt.ylim(-25, 25)
-    ax.axis('off')
-    ax.axis('tight')
-    plt.savefig('haha.png', dpi=120)
-
-plot_word2vec()
 
 def batch_iter(data, batch_size, num_epochs, shuffle=True):
     """

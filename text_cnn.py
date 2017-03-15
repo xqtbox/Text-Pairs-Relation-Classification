@@ -6,52 +6,6 @@ import gensim
 from gensim.models import word2vec
 from gensim.corpora import TextCorpus, MmCorpus, Dictionary
 
-def linear(input_, output_size, scope=None):
-    '''
-    Linear map: output[k] = sum_i(Matrix[k, i] * args[i] ) + Bias[k]
-    Args:
-        args: a tensor or a list of 2D, batch x n, Tensors.
-    output_size: int, second dimension of W[i].
-    scope: VariableScope for the created subgraph; defaults to "Linear".
-  Returns:
-    A 2D Tensor with shape [batch x output_size] equal to
-    sum_i(args[i] * W[i]), where W[i]s are newly created matrices.
-  Raises:
-    ValueError: if some of the arguments has unspecified or wrong shape.
-  '''
-
-    shape = input_.get_shape().as_list()
-    if len(shape) != 2:
-        raise ValueError("Linear is expecting 2D arguments: %s" % str(shape))
-    if not shape[1]:
-        raise ValueError("Linear expects shape[1] of arguments: %s" % str(shape))
-    input_size = shape[1]
-
-    # Now the computation.
-    with tf.variable_scope(scope or "SimpleLinear"):
-        matrix = tf.get_variable("Matrix", [output_size, input_size], dtype=input_.dtype)
-        bias_term = tf.get_variable("Bias", [output_size], dtype=input_.dtype)
-
-    return tf.matmul(input_, tf.transpose(matrix)) + bias_term
-
-
-def highway(input_, size, num_layers=1, bias=-2.0, f=tf.nn.relu, scope='Highway'):
-    """Highway Network (cf. http://arxiv.org/abs/1505.00387).
-    t = sigmoid(Wy + b)
-    z = t * g(Wy + b) + (1 - t) * y
-    where g is nonlinearity, t is transform gate, and (1 - t) is carry gate.
-    """
-
-    with tf.variable_scope(scope):
-        for idx in range(num_layers):
-            g = f(linear(input_, size, scope='highway_lin_%d' % idx))
-            t = tf.sigmoid(linear(input_, size, scope='highway_gate_%d' % idx) + bias)
-            output = t * g + (1. - t) * input_
-            input_ = output
-
-    return output
-
-
 class TextCNN(object):
 	"""
 	A CNN for text classification.
@@ -59,7 +13,7 @@ class TextCNN(object):
 	"""
 	def __init__(
 		self, sequence_length, num_classes, vocab_size,
-		embedding_size, filter_sizes, num_filters, l2_reg_lambda=0.0, pretrained_embedding=None):
+		embedding_size, filter_sizes, num_filters, l2_reg_lambda=0.0, word2vec_matrix=None):
 
 			# Placeholders for input, output and dropout
 			self.input_x_front = tf.placeholder(tf.int32, [None, sequence_length], name="input_x_front")
@@ -75,15 +29,18 @@ class TextCNN(object):
 			# Embedding layer
 			with tf.device('/cpu:0'), tf.name_scope("embedding"):
 				# 原采用的是随机生成正态分布的词向量。
+				self.W = tf.Variable(
+						tf.random_uniform([vocab_size, embedding_size], -1.0, 1.0),
+						name="W")
 				# Vector 是通过自己的语料库训练而得到的词向量。
-				# input_x_front 和 input_x_behind 共用词向量。
-				if pretrained_embedding is None:
-					self.W = tf.Variable(tf.random_uniform([vocab_size, embedding_size], -1.0, 1.0), name="W")
-				else:
-					self.W = tf.Variable(pretrained_embedding, name="W", trainable=True)
-					self.W = tf.cast(self.W, tf.float32)
+				# input_x_front 和 input_x_behind 共用 Vector。
+				self.V = tf.Variable(word2vec_matrix, name="V")
 				self.embedded_chars_front = tf.nn.embedding_lookup(self.W, self.input_x_front)
 				self.embedded_chars_behind = tf.nn.embedding_lookup(self.W, self.input_x_behind)
+				
+#                    self.embedded_chars_front = tf.nn.embedding_lookup(self.V, self.input_x_front)
+#                    self.embedded_chars_behind = tf.nn.embedding_lookup(self.V, self.input_x_behind)
+				
 				self.embedded_chars_expanded_front = tf.expand_dims(self.embedded_chars_front, -1)
 				self.embedded_chars_expanded_behind = tf.expand_dims(self.embedded_chars_behind, -1)
 					
@@ -140,14 +97,10 @@ class TextCNN(object):
 			self.h_pool_flat_behind = tf.reshape(self.h_pool_behind, [-1, num_filters_total])
 
 			self.h_pool_flat_combine = tf.concat([self.h_pool_flat_front, self.h_pool_flat_behind], 1)
-
-			# Add highway
-			with tf.name_scope("highway"):
-				self.h_highway = highway(self.h_pool_flat_combine, self.h_pool_flat_combine.get_shape()[1], 1, 0)
-
+			
 			# Add dropout
 			with tf.name_scope("dropout"):
-				self.h_drop = tf.nn.dropout(self.h_highway, self.dropout_keep_prob)
+				self.h_drop = tf.nn.dropout(self.h_pool_flat_combine, self.dropout_keep_prob)
 
 			# Final (unnormalized) scores and predictions
 			with tf.name_scope("output"):
