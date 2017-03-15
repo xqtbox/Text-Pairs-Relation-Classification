@@ -29,6 +29,14 @@ Use `gensim` package to pre-train my data.
 
 ![](https://farm1.staticflickr.com/650/33049175050_080d4de7ff_o.jpg)
 
+## Innovation
+
+1. Make the data support Chinese and English.(Which use `gensim` seems easy)
+2. Can use your own pre-trained word vectors.
+3. Deign two subnetworks to meet the task requirements.
+4. Add a new Highway Layer.
+
+
 ## References
 
 - [Convolutional Neural Networks for Sentence Classification](http://arxiv.org/abs/1408.5882)
