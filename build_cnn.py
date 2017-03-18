@@ -5,6 +5,7 @@ import datetime
 import tensorflow as tf
 from text_cnn import TextCNN
 import data_helpers
+import model_export
 from tensorflow.contrib import learn
 
 
@@ -31,7 +32,7 @@ tf.flags.DEFINE_float("l2_reg_lambda", 0.0, "L2 regularization lambda (default: 
 
 # Training parameters
 tf.flags.DEFINE_integer("batch_size", 64, "Batch Size (default: 64)")
-tf.flags.DEFINE_integer("num_epochs", 200, "Number of training epochs (default: 200)")
+tf.flags.DEFINE_integer("num_epochs", 300, "Number of training epochs (default: 200)")
 tf.flags.DEFINE_integer("evaluate_every", 100, "Evaluate model on dev set after this many steps (default: 100)")
 tf.flags.DEFINE_integer("checkpoint_every", 100, "Save model after this many steps (default: 100)")
 tf.flags.DEFINE_integer("num_checkpoints", 5, "Number of checkpoints to store (default: 5)")
@@ -40,18 +41,26 @@ tf.flags.DEFINE_integer("num_checkpoints", 5, "Number of checkpoints to store (d
 tf.flags.DEFINE_boolean("allow_soft_placement", True, "Allow device soft device placement")
 tf.flags.DEFINE_boolean("log_device_placement", False, "Log placement of ops on devices")	
 
+# Model export parameters
+tf.flags.DEFINE_string("input_graph_name", "input_graph.pb", "Graph input file of the graph to export")
+tf.flags.DEFINE_string("output_graph_name", "output_graph.pb", "Graph output file of the graph to export")
+tf.flags.DEFINE_string("output_node", "output/predictions", "The output node of the graph")
+
+
 def main():
+	# Data Preparation
+	# ==================================================
+
+	# Load data
 	print('Loading data...')
 	
 	print('Training data processing...')
-	x_train_front, x_train_behind, y_train, max_seq_len_trainging = \
+	x_train_front, x_train_behind, y_train = \
 		data_helpers.load_data_and_labels(FLAGS.training_data_file, FLAGS.MAX_SEQUENCE_LENGTH, FLAGS.embedding_dim)
 
 	print('Test data processing...')
-	x_test_front, x_test_behind, y_test, max_seq_len_test = \
+	x_test_front, x_test_behind, y_test = \
 		data_helpers.load_data_and_labels(FLAGS.test_data_file, FLAGS.MAX_SEQUENCE_LENGTH, FLAGS.embedding_dim)
-	
-	print('Max Sequence length should at least be:', max(max_seq_len_trainging, max_seq_len_test))
 	
 	vocab_size = data_helpers.load_vocab_size()
 	pretrained_word2vec_matrix = data_helpers.load_word2vec_matrix(vocab_size, FLAGS.embedding_dim)
@@ -169,6 +178,16 @@ def main():
 					if current_step % FLAGS.checkpoint_every == 0:
 							path = saver.save(sess, checkpoint_prefix, global_step=current_step)
 							print("Saved model checkpoint to {}\n".format(path))
-	
+
+			# Saving graph
+			print("Saving graph...")
+			tf.train.write_graph(sess.graph, checkpoint_dir, FLAGS.input_graph_name)
+
+			# exporting graph and model
+			print("Freezing model...")
+			input_graph_path = os.path.join(checkpoint_dir, FLAGS.input_graph_name)
+			output_graph_path = os.path.join(checkpoint_dir, FLAGS.output_graph_name)
+			model_export.freeze_model(input_graph_path, output_graph_path, FLAGS.output_node, path)
+
 main()
 

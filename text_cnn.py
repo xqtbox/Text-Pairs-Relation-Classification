@@ -1,10 +1,4 @@
-import randolph
 import tensorflow as tf
-import numpy as np
-import multiprocessing
-import gensim
-from gensim.models import word2vec
-from gensim.corpora import TextCorpus, MmCorpus, Dictionary
 
 def linear(input_, output_size, scope=None):
     '''

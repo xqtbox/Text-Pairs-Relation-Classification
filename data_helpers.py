@@ -3,7 +3,6 @@ import gensim
 import randolph
 import multiprocessing
 import matplotlib.patheffects as PathEffects
-from collections import Counter
 from gensim import corpora, models, similarities
 from gensim.models import word2vec
 from gensim.corpora import TextCorpus, MmCorpus, Dictionary
@@ -13,6 +12,7 @@ from pylab import mpl
 mpl.rcParams['font.sans-serif'] = ['FangSong'] # 指定默认字体
 mpl.rcParams['axes.unicode_minus'] = False # 解决保存图像是负号'-'显示为方块的问题
 import matplotlib.pyplot as plt
+
 
 BASE_DIR = randolph.cur_file_dir()
 TEXT_DIR = BASE_DIR + '/content.txt'
@@ -122,7 +122,7 @@ def load_data_and_labels(data_file, MAX_SEQUENCE_LENGTH, EMBEDDING_SIZE):
     print('Shape of data front tensor:', data_front.shape)
     print('Shape of data behind tensor:', data_behind.shape)
     print('Shape of label tensor:', labels.shape)
-    return data_front, data_behind, labels, max_seq_len
+    return data_front, data_behind, labels
 
 def load_vocab_size(vocab_data_file=VOCABULARY_DICT_DIR):
     vocab_dict = Dictionary.load(vocab_data_file)
@@ -143,31 +143,41 @@ def plot_word2vec():
     tsne = TSNE(n_components=2)
     #print(tsne)
     X_tsne = tsne.fit_transform(X)
-    f = plt.figure(figsize=(50, 50))
-    ax = plt.subplot(aspect='equal')
-    sc = ax.scatter(X_tsne[:, 0], X_tsne[:, 1], lw=0, s=40)
-    txts = []
-    for i in range(len(Y)):
-        # Position of each label.
-        if i % 20 == 0:
-            txt = ax.text(X_tsne[i,0], X_tsne[i,1], Y[i], fontsize=10)
-            txt.set_path_effects([
-                PathEffects.Stroke(linewidth=5, foreground="w"),
-                PathEffects.Normal()])
-            txts.append(txt)
-#    sc = ax.scatter(X_tsne[:,0], X_tsne[:,1], lw=0, s=40)
-    plt.xlim(-25, 25)
-    plt.ylim(-25, 25)
-    ax.axis('off')
-    ax.axis('tight')
-    plt.savefig('haha.png', dpi=120)
+    
+    def scatter(X, Y):
+        f = plt.figure(figsize=(50, 50))
+        ax = plt.subplot(aspect='equal')
+        sc = ax.scatter(X[:, 0], X[:, 1], lw=0, s=40)
+        plt.xlim(-25, 25)
+        plt.ylim(-25, 25)
+        ax.axis('off')
+        ax.axis('tight')
+        txts = []
+        for i in range(len(Y)):
+            # Position of each label.
+            if i % 20 == 0:
+                txt = ax.text(X[i, 0], X[i, 1], Y[i], fontsize=10)
+                txt.set_path_effects([
+                    PathEffects.Stroke(linewidth=5, foreground="w"),
+                    PathEffects.Normal()])
+                txts.append(txt)
+        return f, ax, sc, txts
 
-plot_word2vec()
+    scatter(X_tsne, Y)
+    plt.savefig('word_vector.png', dpi=150)
 
 def batch_iter(data, batch_size, num_epochs, shuffle=True):
     """
-	Generates a batch iterator for a dataset.
-	"""
+    含有 yield 说明不是一个普通函数，是一个 Generator.
+    函数效果：对 data，一共分成 num_epochs 个阶段（epoch），在每个 epoch 内，如果 shuffle=True，就将 data 重新洗牌，
+    批量生成 (yield) 一批一批的重洗过的data，每批大小是 batch_size，一共生成 int(len(data)/batch_size)+1 批。
+    Generate a  batch iterator for a dataset.
+    :param data:
+    :param batch_size:每批 data 的 size
+    :param num_epochs:阶段数目
+    :param shuffle:洗牌
+    :return:
+    """
     data = np.array(data)
     data_size = len(data)
     num_batches_per_epoch = int((len(data) - 1) / batch_size) + 1
