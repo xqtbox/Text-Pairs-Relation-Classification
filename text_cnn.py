@@ -153,7 +153,10 @@ class TextCNN(object):
 				l2_loss += tf.nn.l2_loss(W)
 				l2_loss += tf.nn.l2_loss(b)
 				self.scores = tf.nn.xw_plus_b(self.h_drop, W, b, name="scores")
+				self.softmaxScores = tf.nn.softmax(self.scores, name="softmaxScores")
+				self.sigmoidScores = tf.nn.sigmoid(self.scores, name="sigmoidScores")
 				self.predictions = tf.argmax(self.scores, 1, name="predictions")
+				self.topKPreds = tf.nn.top_k(self.softmaxScores, k=1, sorted=True, name="topKPreds")
 
 			# CalculateMean cross-entropy loss
 			with tf.name_scope("loss"):
@@ -167,4 +170,4 @@ class TextCNN(object):
 
 			# AUC
 			with tf.name_scope("AUC"):
-				self.AUC = tf.contrib.metrics.streaming_auc(self.predictions, tf.argmax(self.input_y, 1))
+				self.AUC = tf.contrib.metrics.streaming_auc(self.softmaxScores, self.input_y)

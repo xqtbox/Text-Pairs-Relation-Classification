@@ -7,11 +7,11 @@ from gensim import corpora, models, similarities
 from gensim.models import word2vec
 from gensim.corpora import TextCorpus, MmCorpus, Dictionary
 from tflearn.data_utils import to_categorical, pad_sequences
-from sklearn.manifold import TSNE
-from pylab import mpl
-mpl.rcParams['font.sans-serif'] = ['FangSong'] # 指定默认字体
-mpl.rcParams['axes.unicode_minus'] = False # 解决保存图像是负号'-'显示为方块的问题
-import matplotlib.pyplot as plt
+# from sklearn.manifold import TSNE
+# from pylab import mpl
+# mpl.rcParams['font.sans-serif'] = ['FangSong'] # 指定默认字体
+# mpl.rcParams['axes.unicode_minus'] = False # 解决保存图像是负号'-'显示为方块的问题
+# import matplotlib.pyplot as plt
 
 
 BASE_DIR = randolph.cur_file_dir()
@@ -23,7 +23,7 @@ def create_vocab(text_file):
     texts = []
     with open(text_file, 'r') as fin:
         for eachline in fin:
-            line = eachline.strip().split(' ')
+            line = eachline.strip().split('\t')
             texts.append(line)
     vocab_dict = corpora.Dictionary(texts)
     vocab_dict.save(VOCABULARY_DICT_DIR)
@@ -42,7 +42,7 @@ def data_word2vec(inputFile, dictionary):
     def token_to_index(content, dictionary):
         list = []
         for item in content:
-            if item != '<end>':
+            if item != '<end>' and (len(item) > 0):
                 list.append(dictionary.token2id[item])
         return list
 
