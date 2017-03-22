@@ -13,7 +13,6 @@ from tflearn.data_utils import to_categorical, pad_sequences
 # mpl.rcParams['axes.unicode_minus'] = False # 解决保存图像是负号'-'显示为方块的问题
 # import matplotlib.pyplot as plt
 
-
 BASE_DIR = randolph.cur_file_dir()
 TEXT_DIR = BASE_DIR + '/content.txt'
 VOCABULARY_DICT_DIR = BASE_DIR + '/math.dict'
@@ -26,8 +25,11 @@ def create_vocab(text_file):
             line = eachline.strip().split('\t')
             texts.append(line)
     vocab_dict = corpora.Dictionary(texts)
+    print(vocab_dict)
     vocab_dict.save(VOCABULARY_DICT_DIR)
     return vocab_dict
+
+# create_vocab(TEXT_DIR)
 
 def word2vec_train(embedding_size, inputFile=TEXT_DIR, outputFile=WORD2VEC_DIR):
     sentences = word2vec.LineSentence(inputFile)
@@ -37,6 +39,8 @@ def word2vec_train(embedding_size, inputFile=TEXT_DIR, outputFile=WORD2VEC_DIR):
     model = gensim.models.Word2Vec(sentences, size=embedding_size, min_count=0,
                                    sg=0, workers=multiprocessing.cpu_count())
     model.save(outputFile)
+
+# word2vec_train(300)
 
 def data_word2vec(inputFile, dictionary):
     def token_to_index(content, dictionary):
@@ -141,7 +145,6 @@ def plot_word2vec():
         X.append(model[item])
         Y.append(item)
     tsne = TSNE(n_components=2)
-    #print(tsne)
     X_tsne = tsne.fit_transform(X)
     
     def scatter(X, Y):

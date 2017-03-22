@@ -15,13 +15,14 @@ BASE_DIR = randolph.cur_file_dir()
 
 # Data loading params
 tf.flags.DEFINE_string("training_data_file", BASE_DIR + '/Model1_Training.txt', "Data source for the training data.")
+tf.flags.DEFINE_string("validation_data_file", BASE_DIR + '/Model1_Validation.txt', "Data source for the validation data.")
 tf.flags.DEFINE_string("test_data_file", BASE_DIR + '/Model1_Test.txt', "Data source for the test data.")
 
 # Data parameters
-tf.flags.DEFINE_string("MAX_SEQUENCE_LENGTH", 350, "每个文本的最长选取长度(padding的统一长度),较短的文本可以设短些.")
+tf.flags.DEFINE_string("MAX_SEQUENCE_LENGTH", 450, "每个文本的最长选取长度(padding的统一长度),较短的文本可以设短些.")
 tf.flags.DEFINE_string("MAX_NB_WORDS", 10000, "整体词库字典中，词的多少，可以略微调大或调小.")
 
-# Model Hyperparameters
+# Model Hyperparameterss
 tf.flags.DEFINE_integer("embedding_dim", 300, "Dimensionality of character embedding (default: 128)")
 tf.flags.DEFINE_string("filter_sizes", "3,4,5", "Comma-separated filter sizes (default: '3,4,5')")
 tf.flags.DEFINE_integer("num_filters", 128, "Number of filters per filter size (default: 128)")
@@ -36,14 +37,14 @@ tf.flags.DEFINE_integer("checkpoint_every", 100, "Save model after this many ste
 tf.flags.DEFINE_integer("num_checkpoints", 5, "Number of checkpoints to store (default: 5)")
 
 # Misc Parameters
-tf.flags.DEFINE_boolean("allow_soft_placement", True, "Allow device soft device placement")
+tf.flags.DEFINE_boolean("allow_soft_placement", True, "Allow device Model1/train_cnn.py:39soft device placement")
 tf.flags.DEFINE_boolean("log_device_placement", False, "Log placement of ops on devices")
+tf.flags.DEFINE_boolean("gpu_options_allow_growth", True, "Allow gpu options growth")
 
-# Model export parameters
+# Model export parametersModel1/train_cnn.py:39
 tf.flags.DEFINE_string("input_graph_name", "input_graph.pb", "Graph input file of the graph to export")
 tf.flags.DEFINE_string("output_graph_name", "output_graph.pb", "Graph output file of the graph to export")
 tf.flags.DEFINE_string("output_node", "output/predictions", "The output node of the graph")
-
 
 def main():
 	# Data Preparation
@@ -56,19 +57,24 @@ def main():
 	x_train_front, x_train_behind, y_train = \
 		data_helpers.load_data_and_labels(FLAGS.training_data_file, FLAGS.MAX_SEQUENCE_LENGTH, FLAGS.embedding_dim)
 
-	print('Test data processing...')
-	x_test_front, x_test_behind, y_test = \
-		data_helpers.load_data_and_labels(FLAGS.test_data_file, FLAGS.MAX_SEQUENCE_LENGTH, FLAGS.embedding_dim)
-	
+	print('Validation data processing...')
+	x_validation_front, x_validation_behind, y_validation = \
+		data_helpers.load_data_and_labels(FLAGS.validation_data_file, FLAGS.MAX_SEQUENCE_LENGTH, FLAGS.embedding_dim)
+
+	# print('Test data processing...')
+	# x_test_front, x_test_behind, y_test = \
+	# 	data_helpers.load_data_and_labels(FLAGS.test_data_file, FLAGS.MAX_SEQUENCE_LENGTH, FLAGS.embedding_dim)
+
 	vocab_size = data_helpers.load_vocab_size()
 	pretrained_word2vec_matrix = data_helpers.load_word2vec_matrix(vocab_size, FLAGS.embedding_dim)
 
 	# Training
 	with tf.Graph().as_default():
 		session_conf = tf.ConfigProto(
-			allow_soft_placement = FLAGS.allow_soft_placement,
-			log_device_placement = FLAGS.log_device_placement)
-		sess = tf.Session(config = session_conf)
+			allow_soft_placement=FLAGS.allow_soft_placement,
+			log_device_placement=FLAGS.log_device_placement)
+		session_conf.gpu_options.allow_growth = FLAGS.gpu_options_allow_growth
+		sess = tf.Session(config=session_conf)
 		with sess.as_default():
 			cnn = TextCNN(
 					sequence_length=FLAGS.MAX_SEQUENCE_LENGTH,
@@ -110,17 +116,17 @@ def main():
 			train_summary_dir = os.path.join(out_dir, "summaries", "train")
 			train_summary_writer = tf.summary.FileWriter(train_summary_dir, sess.graph)
 
-			# Dev summaries
-			dev_summary_op = tf.summary.merge([loss_summary, acc_summary])
-			dev_summary_dir = os.path.join(out_dir, "summaries", "dev")
-			dev_summary_writer = tf.summary.FileWriter(dev_summary_dir, sess.graph)
+			# Validation summaries
+			validation_summary_op = tf.summary.merge([loss_summary, acc_summary])
+			validation_summary_dir = os.path.join(out_dir, "summaries", "validation")
+			validation_summary_writer = tf.summary.FileWriter(validation_summary_dir, sess.graph)
 
 			# Checkpoint directory. Tensorflow assumes this directory already exists so we need to create it
 			checkpoint_dir = os.path.abspath(os.path.join(out_dir, "checkpoints"))
 			checkpoint_prefix = os.path.join(checkpoint_dir, "model")
 			if not os.path.exists(checkpoint_dir):
 					os.makedirs(checkpoint_dir)
-			saver = tf.train.Saver(tf.global_variables(), max_to_keep = FLAGS.num_checkpoints)
+			saver = tf.train.Saver(tf.global_variables(), max_to_keep=FLAGS.num_checkpoints)
 
 			# Initialize all variables
 			sess.run(tf.global_variables_initializer())
@@ -142,9 +148,9 @@ def main():
 					print("{}: step {}, loss {:g}, acc {:g}".format(time_str, step, loss, accuracy))
 					train_summary_writer.add_summary(summaries, step)
 
-			def dev_step(x_batch_front, x_batch_behind, y_batch, writer=None):
+			def validation_step(x_batch_front, x_batch_behind, y_batch, writer=None):
 					"""
-					Evaluates model on a dev set
+					Evaluates model on a validation set
 					"""
 					feed_dict = {
 						cnn.input_x_front: x_batch_front,
@@ -153,13 +159,13 @@ def main():
 						cnn.dropout_keep_prob: 1.0
 					}
 					step, summaries, scores, predictions, topKPreds, loss, accuracy, auc = sess.run(
-							[global_step, dev_summary_op, cnn.scores, cnn.predictions,
+							[global_step, validation_summary_op, cnn.scores, cnn.predictions,
 							 cnn.topKPreds, cnn.loss, cnn.accuracy, cnn.AUC], feed_dict)
 					time_str = datetime.datetime.now().isoformat()
 					print("{}: step {}, loss {:g}, acc {:g}, AUC {}"
 						  .format(time_str, step, loss, accuracy, auc))
 					if writer:
-							writer.add_summary(summaries, step)
+						writer.add_summary(summaries, step)
 
 			# Generate batches
 			batches = data_helpers.batch_iter(
@@ -171,7 +177,7 @@ def main():
 					current_step = tf.train.global_step(sess, global_step)
 					if current_step % FLAGS.evaluate_every == 0:
 							print("\nEvaluation:")
-							dev_step(x_test_front, x_test_behind, y_test, writer=dev_summary_writer)
+							validation_step(x_validation_front, x_validation_behind, y_validation, writer=validation_summary_writer)
 							print("")
 					if current_step % FLAGS.checkpoint_every == 0:
 							path = saver.save(sess, checkpoint_prefix, global_step=current_step)
