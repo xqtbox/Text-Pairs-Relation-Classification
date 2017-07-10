@@ -1,5 +1,4 @@
 import tensorflow as tf
-import os
 import freeze_graph
 
 def freeze_model(input_graph_path, output_graph_path, output_node_names, checkpoint_path):

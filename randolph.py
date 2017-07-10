@@ -2,9 +2,7 @@
 import sys
 import os
 import os.path
-import shutil
 import linecache
-import operator
 
 # 创建需要输出的文件列表, prefix 为前缀，默认值为空；filetype 为文件类型，默认值为 .txt 文本类型.
 def create_list(num, prefix = '', postfix = '', filetype = '.txt'):

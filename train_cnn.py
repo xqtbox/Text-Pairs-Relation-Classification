@@ -13,10 +13,15 @@ import model_exports
 FLAGS = tf.flags.FLAGS
 BASE_DIR = randolph.cur_file_dir()
 
+Subset = '1' # 需要训练和测试的子集
+TRAININGSET_DIR = BASE_DIR + '/Model Training' + '/Model' + Subset + '_Training.txt'
+VALIDATIONSET_DIR = BASE_DIR + '/Model Validation' + '/Model' + Subset + '_Validation.txt'
+TESTSET_DIR = BASE_DIR + '/Model Test' + '/Model' + Subset + '_Test.txt'
+
 # Data loading params
-tf.flags.DEFINE_string("training_data_file", BASE_DIR + '/Model1_Training.txt', "Data source for the training data.")
-tf.flags.DEFINE_string("validation_data_file", BASE_DIR + '/Model1_Validation.txt', "Data source for the validation data.")
-tf.flags.DEFINE_string("test_data_file", BASE_DIR + '/Model1_Test.txt', "Data source for the test data.")
+tf.flags.DEFINE_string("training_data_file", TRAININGSET_DIR, "Data source for the training data.")
+tf.flags.DEFINE_string("validation_data_file", VALIDATIONSET_DIR, "Data source for the validation data.")
+tf.flags.DEFINE_string("test_data_file", TESTSET_DIR, "Data source for the test data.")
 
 # Data parameters
 tf.flags.DEFINE_string("MAX_SEQUENCE_LENGTH", 450, "每个文本的最长选取长度(padding的统一长度),较短的文本可以设短些.")
@@ -39,9 +44,9 @@ tf.flags.DEFINE_integer("num_checkpoints", 5, "Number of checkpoints to store (d
 # Misc Parameters
 tf.flags.DEFINE_boolean("allow_soft_placement", True, "Allow device Model1/train_cnn.py:39soft device placement")
 tf.flags.DEFINE_boolean("log_device_placement", False, "Log placement of ops on devices")
-tf.flags.DEFINE_boolean("gpu_options_allow_growth", True, "Allow gpu options growth")
+# tf.flags.DEFINE_boolean("gpu_options_allow_growth", True, "Allow gpu options growth")
 
-# Model export parametersModel1/train_cnn.py:39
+# Model export parameters
 tf.flags.DEFINE_string("input_graph_name", "input_graph.pb", "Graph input file of the graph to export")
 tf.flags.DEFINE_string("output_graph_name", "output_graph.pb", "Graph output file of the graph to export")
 tf.flags.DEFINE_string("output_node", "output/predictions", "The output node of the graph")
@@ -73,7 +78,7 @@ def main():
 		session_conf = tf.ConfigProto(
 			allow_soft_placement=FLAGS.allow_soft_placement,
 			log_device_placement=FLAGS.log_device_placement)
-		session_conf.gpu_options.allow_growth = FLAGS.gpu_options_allow_growth
+		# session_conf.gpu_options.allow_growth = FLAGS.gpu_options_allow_growth
 		sess = tf.Session(config=session_conf)
 		with sess.as_default():
 			cnn = TextCNN(

@@ -7,16 +7,23 @@ import data_helpers
 from text_cnn import TextCNN
 from tensorflow.contrib import learn
 
+model_log = '1490175368'
+Subset = '11'
+save_file = 'result' + Subset + '.txt'
+
 BASE_DIR = randolph.cur_file_dir()
-model_file = BASE_DIR + "/runs/1490098338/checkpoints/output_graph.pb"
+VALIDATIONSET_DIR = BASE_DIR + '/Model Validation' + '/Model' + Subset + '_Validation.txt'
+TESTSET_DIR = BASE_DIR + '/Model Test' + '/Model' + Subset + '_Test.txt'
+MODEL_DIR = BASE_DIR + '/runs/' + model_log + '/checkpoints/'
+model_file = BASE_DIR + '/runs/' + model_log + '/checkpoints/output_graph.pb'
 
 # Data loading params
-tf.flags.DEFINE_string("validation_data_file", BASE_DIR + '/Model1_Validation.txt', "Data source for the validation data.")
-tf.flags.DEFINE_string("test_data_file", BASE_DIR + '/Model1_Test.txt', "Data source for the test data.")
-tf.flags.DEFINE_string("checkpoint_dir", BASE_DIR + '/runs/1490175368/checkpoints', "Checkpoint directory from training run")
+tf.flags.DEFINE_string("validation_data_file", VALIDATIONSET_DIR, "Data source for the validation data")
+tf.flags.DEFINE_string("test_data_file", TESTSET_DIR, "Data source for the test data")
+tf.flags.DEFINE_string("checkpoint_dir", MODEL_DIR, "Checkpoint directory from training run")
 
 # Data parameters
-tf.flags.DEFINE_string("MAX_SEQUENCE_LENGTH", 450, "每个文本的最长选取长度(padding的统一长度),较短的文本可以设短些.")
+tf.flags.DEFINE_string("MAX_SEQUENCE_LENGTH", 550, "每个文本的最长选取长度(padding的统一长度),较短的文本可以设短些.")
 tf.flags.DEFINE_string("MAX_NB_WORDS", 10000, "整体词库字典中，词的多少，可以略微调大或调小.")
 
 # Model Hyperparameters
@@ -49,7 +56,7 @@ FLAGS._parse_flags()
 # Load data
 print("Loading data...")
 x_test_front, x_test_behind, y_test = \
-    data_helpers.load_data_and_labels(FLAGS.test_data_file, FLAGS.MAX_SEQUENCE_LENGTH, FLAGS.embedding_dim)
+    data_helpers.load_data_and_labels(FLAGS.validation_data_file, FLAGS.MAX_SEQUENCE_LENGTH, FLAGS.embedding_dim)
 
 vocab_size = data_helpers.load_vocab_size()
 pretrained_word2vec_matrix = data_helpers.load_word2vec_matrix(vocab_size, FLAGS.embedding_dim)
@@ -120,75 +127,4 @@ with graph.as_default():
 
 		# all_softMaxScores    = np.append(all_softMaxScores, [[smxScore] for smxScore in batch_softMax_scores])
 
-		np.savetxt('result11.txt', list(zip(all_predictions, all_topKPreds)), fmt='%s')
-
-# with open('result.txt', 'w') as fout:
-# 	for i in range(len(x_test_front)):
-# 		outStr = ''
-# 		outStr = outStr + str(i) + '\t' + all_predictions[i].astype('S32')
-# 		fout.write(outStr + '\n')
-# saver = tf.train.import_meta_graph(cpkl.model_checkpoint_path + '.meta')
-# saver.restore(sess, cpkl.model_checkpoint_path)
-#
-# dp_dict = tl.utils.dict_to_one(cnn.outputnetwork.all_drop)
-# feed_dict = {
-#     cnn.input_x_front: x_test_front,
-#     cnn.input_x_behind: x_test_behind,
-#     cnn.input_y: y_test,
-#     cnn.dropout_keep_prob: 1.0
-# }
-# feed_dict.update(dp_dict)
-#
-# print(sess.run(cnn.accuracy, feed_dict=feed_dict))
-
-
-# # We use our load_graph function on the file
-# graph = model_export.load_model(model_file)
-# print(graph)
-#
-# # We can verify that we can access to the list of operations in the graph
-# for op in graph.get_operations():
-#     print(op.name)
-#
-# # We access the input and output nodes
-# input_x_front = graph.get_tensor_by_name('prefix/input_x_front:0')
-# input_x_behind = graph.get_tensor_by_name('prefix/input_x_behind:0')
-# scores = graph.get_tensor_by_name('prefix/output/scores:0')
-# predictions = graph.get_tensor_by_name('prefix/output/predictions:0')
-# drop = graph.get_tensor_by_name('prefix/dropout_keep_prob:0')
-#
-# # We launch a Session
-# with tf.Session(graph=graph) as sess:
-#     input_y = tf.placeholder(tf.float32, [None, 2], name="input_y")
-#     # CalculateMean cross-entropy loss
-#     with tf.name_scope("loss"):
-#         losses = tf.nn.softmax_cross_entropy_with_logits(logits=scores, labels=input_y)
-#         loss = tf.reduce_mean(losses)
-#
-#     # Accuracy
-#     with tf.name_scope("accuracy"):
-#         correct_predictions = tf.equal(predictions, tf.argmax(input_y, 1))
-#         accuracy = tf.reduce_mean(tf.cast(correct_predictions, "float"), name="accuracy")
-#
-#     # AUC
-#     with tf.name_scope("AUC"):
-#         AUC = tf.contrib.metrics.streaming_auc(predictions, tf.argmax(input_y, 1))
-        
-    # example = [0] * 56
-    # example[0] = 7080
-    # example[1] = 2294
-    # example[2] = 1776
-    # example[3] = 2344
-    # example[4] = 14041
-    # example[5] = 941
-    # example[6] = 12
-    # example[7] = 8186
-    # example[8] = 1991
-    #
-    # print(example)
-    # example = [example]
-    # print(example)
-    #
-    # print(predictions.eval(feed_dict = { input_x : example, drop:1.0}))
-    #
-    
+		np.savetxt(save_file, list(zip(all_predictions, all_topKPreds)), fmt='%s')

@@ -3,9 +3,9 @@ import gensim
 import randolph
 import multiprocessing
 import matplotlib.patheffects as PathEffects
-from gensim import corpora, models, similarities
+from gensim import corpora
 from gensim.models import word2vec
-from gensim.corpora import TextCorpus, MmCorpus, Dictionary
+from gensim.corpora import Dictionary
 from tflearn.data_utils import to_categorical, pad_sequences
 # from sklearn.manifold import TSNE
 # from pylab import mpl
