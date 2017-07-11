@@ -3,6 +3,8 @@ import sys
 import os
 import os.path
 import linecache
+import chardet
+import codecs
 
 # 创建需要输出的文件列表, prefix 为前缀，默认值为空；filetype 为文件类型，默认值为 .txt 文本类型.
 def create_list(num, prefix = '', postfix = '', filetype = '.txt'):
@@ -112,3 +114,27 @@ def removeFileInFirstDir(targetDir):
 		targetFile = os.path.join(targetDir, file)
 		if os.path.isfile(targetFile):
 			os.remove(targetFile)
+
+# 检测文件的编码格式
+def detect_file_encoding_format(filename):
+	with open(filename, 'rb') as f:
+		data = f.read()
+	source_encoding = chardet.detect(data)
+	print(source_encoding)
+
+# 将文件的编码格式转换成'utf-8'
+def convert_file_to_utf8(filename):
+	# !!! does not backup the origin file
+	with open(filename, "rb") as f:
+		data = f.read()
+	source_encoding = chardet.detect(data)['encoding']
+	if source_encoding == None:
+		print("??", filename)
+		return
+	print("  ", source_encoding, filename)
+	if source_encoding != 'utf-8' and source_encoding != 'UTF-8-SIG':
+		content = data.decode(source_encoding, 'ignore') #.encode(source_encoding)
+		codecs.open(filename, 'w', encoding='utf-8').write(content)
+
+detect_file_encoding_format('TREC_10.label.txt')
+convert_file_to_utf8('TREC_10.label.txt')
