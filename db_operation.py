@@ -65,12 +65,12 @@ def query_collection(db, collection):
     db.collection.find_one({'attribute': 'value'}) # 只查找某属性 attribute=value 的一条记录，查不到时返回 None
     
     ---------
-    # 只显示集合中的所有记录的 attribute1、attribute2 属性值
-    for item in db.colleciton.find(fields = ['attribute1', 'attribute2']): print item
+    # 只显示集合中的所有记录的 attribute1、attribute2 属性值, '_id': 0 表示一般忽略不显示 _id 的值得， 'attribute': 1 表示显示该字段
+    # 如果不指定，是默认显示所有字段（包括 _id ）
+    for item in db.colleciton.find({}, {'_id': 0, 'attribute1': 1, 'attribute2': 1}): print item
 
     # 显示集合中所有 attribute=21 的记录的 attribute1、attribute2 属性值
-    for item in db.collection.find({'attribute2':21}, ['attribute1', 'attribute2']): print item
-    * 这里要注意，['attribute1', 'attribute2'] 中可以是一个，也可以是多个；同时 ['attribute1', 'attribute2'] 是放在条件｛｝外的。
+    for item in db.collection.find({'attribute2': 21}, {'_id': 0, 'attribute1': 1, 'attribute2': 1}): print item
     ---------
     # 查找符合属性 12<attribute1<15, attribute2=value, attribute2=value 的多条记录，查不到时返回 None
     for item in db.colleciton.find({'attribute1': {'$gt': 12, '$lt': 15}, 'attribute2': 'value'}): print item
@@ -175,6 +175,7 @@ def create_collection(collection, file_list):
         }
         collection.insert_one(data_record).inserted_id
 
-create_collection(collection=collection, file_list=file_list)
+# create_collection(collection=collection, file_list=file_list)
 
-# print(collection.find({'test_knowpoint': ['020549008007001n', '']}).count())
+for item in collection.find({'test_knowpoint': '020549008007001n'}):
+    print(item)
