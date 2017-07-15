@@ -80,6 +80,11 @@ def query_collection(db, collection):
 
     * 当使用 find()函数时，对应的条件都是以字典形式表示｛'attribute1': {'$gt':12}, 'attribute2': 'value'｝，有多个条件时，都放在一个｛｝内
     ---------
+    # 是否存在 (exists)
+    db.collection.find({'sex':{'$exists':True}})  # select * from 集合名 where exists 键1
+    db.collection.find({'sex':{'$exists':False}}) # select * from 集合名 where not exists 键1
+    
+    ---------
     # IN
     # 查找符合属性 attribute 等于 (23, 26, 32) 的多条记录，查不到时返回 None
     for item in db.collection.find({'attribute': {'$in':(23, 26, 32)}}): print item 
@@ -122,6 +127,7 @@ def query_collection(db, collection):
     各种类型值的代表值:
     double:1    string: 2   object: 3   array: 4    binary data: 5
     object id: 7    boolean: 8  date: 9 null: 10
+    ---------
     '''
 
     return
@@ -140,7 +146,13 @@ def extract_attribute(file_list):
                 locals()['attribute_' + str(i + 1)] = []
                 for eachline in locals()['file_' + str(i + 1)]:
                     line = eachline.strip().split('::')
-                    locals()['attribute_' + str(i + 1)].append(line)
+                    new_line = []
+                    for index, item in enumerate(line):
+                        if index == 0:
+                            new_line.append(item)
+                        if index != 0 and item != '':
+                            new_line.append(item)
+                    locals()['attribute_' + str(i + 1)].append(new_line)
 
     result = []
     for i in range(len(file_list)):
@@ -163,4 +175,6 @@ def create_collection(collection, file_list):
         }
         collection.insert_one(data_record).inserted_id
 
-# create_collection(collection=collection, file_list=file_list)
+create_collection(collection=collection, file_list=file_list)
+
+# print(collection.find({'test_knowpoint': ['020549008007001n', '']}).count())
