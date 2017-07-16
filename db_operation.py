@@ -23,7 +23,7 @@ def insert_collection(db, collection):
 
     2.insert() 可以一次性插入一个列表，而不用遍历，效率高; save() 则需要遍历列表，一个个插入。
     
-    db.collection.insert_one({'attribute: value'})
+    db.collection.insert_one({'attribute': value})
     
     '''
 
@@ -36,10 +36,47 @@ def update_collection(db, collection):
     -objNew: 修改器文档，用于说明要对找到的文档进行哪些修改。
     -upsert: 如目标记录不存在，是否插入新文档。
     -multi: 是否更新多个文档。
+    
+    ---------
+    # '$set'
+    db.collection.update({'attribute1': value1, 'attribute2': value2}, \
+                        {'$set': {'attribute1': new_value1}, '$set':{'attribute2': new_value2}, \
+                        '$addToSet':{'attribute3': value3}}, upsert=True)
+    # 其中 '$set' 表示对原来的记录进行修改，'$addToSet' 表示添加 'attribute3' 字段到 
+    # {'attribute1'=new_value1, 'attribute2'=new_value2} 这条记录中。
+    --------- 
+    # '$unset' 表示移除字段属性
+    db.collection.update({'attribute1': value1}, {'$unset': {'attribute2': value2}, '$unset': {'attribute3': value3}})
+    ---------
+    # '$push' & 'pushAll'
+    db.collection.update({'attribute1': value1}, {'$push': {'attribute2': value2}})
+    db.collection.update({'attribute1': value1}, {'$pushAll': {'attribute2': value2}})
+    ---------
+    # '$addToSet': 和 $push 类似，不过仅在该元素不存在时才添加 (Set 表示不重复元素集合)。
+    db.collection.update({'attribute1': value1}, {'$addToSet': {'attribute2': value2}})
 
-    db.collection.update({'gid':last_gid, 'time':l_date}, {'$set':{'gid':last_gid}, '$set':{'time':l_date}, 
-                        '$addToSet':{'categories':category_data}}, upsert=True)
-    其中 '$set' 表示对原来的记录进行修改，'$addToSet' 表示添加 'categories' 字段到 {'gid'=last_gid, 'time'=l_date} 这条记录中。 
+    # '$each': 添加多个元素。
+    db.collection.update({'attribute1': value1}, {'$addToSet': {'attribute2': {'$each': [1,2,3,4]}}})
+    ---------
+    # '$pop': 按照 index 位置下标移除元素。
+    # 原先记录显示（忽略 '_id'）：{'attribute1': [1, 2, 3, 4, 5, 6, 7, 2, 3], 'attribute2': value}
+
+    db.collection.update({'attribute2': value}, {'$pop': {'attribute1': 1}}) # 移除最后一个元素
+    # 此刻字段显示：{'attribute1': [1, 2, 3, 4, 5, 6, 7, 2], 'attribute2': value}
+
+    db.collection.update({'attribute2': value}, {'$pop':{'attribute1': -1}}) # 移除第一个元素
+    # 此刻字段显示：{'attribute1': [2, 3, 4, 5, 6, 7, 2], 'attribute2': value}
+    ---------
+    # '$pull': 按值移除元素。
+    # '$pullAll': 移除所有符合条件的元素。
+    
+    # 原先字段显示（忽略 '_id'）： {'attribute1': [2, 3, 4, 5, 6, 7, 2], 'attribute2': value}
+    db.collection..update({'attribute2': value}, {'$pull':{'attribute1': 2}}) # 移除全部 2
+    # 此刻字段显示：{'attribute1': [3, 4, 5, 6, 7], 'attribute2': value}
+
+    db.collection.update({'attribute2': value}, {'$pullAll':{'attribute1': [3,5,6]}}) # 移除 3,5,6
+    # 此刻字段显示：{'attribute1': [4, 7], 'attribute2': value}
+    ---------
     '''
 
     return
@@ -47,11 +84,12 @@ def update_collection(db, collection):
 def remove_collection(db, collection):
     '''
     db.collection.remove() # 表示删除集合里的所有记录
-    db.collection.remove({'attribute': 'value'}) # 表删除某属性 attribute=value 的记录
+    db.collection.remove({'attribute': value}) # 表删除某属性 attribute=value 的记录
 
-    id = db.collection.find_one({'attribute': 'value'})['_id']
+    id = db.collection.find_one({'attribute': value})['_id']
     db.collection.remove(id) # 查找到某属性 attribute=value 的记录，并根据记录的 id 删除该记录
     db.collection.drop() # 表示删除整个集合
+    * 删除文档通常很快，但是如果要清空整个集合，那么使用 drop() 直接删除集合会更快（然后在这个空集合上重建各项索引）。
     '''
 
     return
@@ -62,8 +100,8 @@ def query_collection(db, collection):
     数据库的查询基本是通过 find() 函数进行查询，其中大于、大于等于、小于、小于等于这些关系运算符经常要用到，分别用'$gt','$gte','$lt','$lte'表示。
     
     db.collection.find({'attribute': {"$lt":15}}) # 查找符合某属性 attribute 的值小于 15 的多条记录
-    db.collection.find({'attribute': 'value'}) # 查找符合某属性 attribute=value 的多条记录，查不到时返回 None
-    db.collection.find_one({'attribute': 'value'}) # 只查找某属性 attribute=value 的一条记录，查不到时返回 None
+    db.collection.find({'attribute': value}) # 查找符合某属性 attribute=value 的多条记录，查不到时返回 None
+    db.collection.find_one({'attribute': value}) # 只查找某属性 attribute=value 的一条记录，查不到时返回 None
     
     ---------
     # 只显示集合中的所有记录的 attribute1、attribute2 属性值, '_id': 0 表示一般忽略不显示 _id 的值得， 'attribute': 1 表示显示该字段
@@ -74,15 +112,17 @@ def query_collection(db, collection):
     for item in db.collection.find({'attribute2': 21}, {'_id': 0, 'attribute1': 1, 'attribute2': 1}): print item
     ---------
     # 查找符合属性 12<attribute1<15, attribute2=value, attribute2=value 的多条记录，查不到时返回 None
-    for item in db.colleciton.find({'attribute1': {'$gt': 12, '$lt': 15}, 'attribute2': 'value'}): print item
+    for item in db.colleciton.find({'attribute1': {'$gt': 12, '$lt': 15}, 'attribute2': value}): print item
     
     # 查找符合属性 attribute1=21, attribute2=value 的多条记录，查不到时返回 None
-    for item in db.colleciton.find({'attribute1': 21, 'attribute2': 'value'}): print item
+    for item in db.colleciton.find({'attribute1': 21, 'attribute2': value}): print item
     ---------
-    # 是否存在 (exists)
-    db.collection.find({'attribute': {'$exists':True}})  # select * from 集合名 where exists 键1
-    db.collection.find({'attribute': {'$exists':False}}) # select * from 集合名 where not exists 键1
+    # Exists
+    # 查找存在属性 attribute 的所有记录
+    db.collection.find({'attribute': {'$exists':True}})
     
+    # 查找不存在属性 attribute 的所有记录 
+    db.collection.find({'attribute': {'$exists':False}})
     ---------
     # IN
     # 查找符合属性 attribute 等于 (23, 26, 32) 的多条记录，查不到时返回 None
@@ -99,6 +139,29 @@ def query_collection(db, collection):
     
     # OR 与 查询制定字段结合
     for item in db.collection.find({'$or': [{'attribute': value1}, {'attribute': value2}]}, {'_id': 0, 'attribute': 1})
+    ---------
+    # 判断数组属性是否包含全部条件。
+    for item in db.collection.find({'attribute': {'$all': (23, 26, 32)}}): print item
+    * 注意和 $in 的区别。$in 是检查目标属性值是条件表达式中的一员，而 $all 则要求属性值包含全部条件元素。
+    ---------
+    # 正则表达式查询
+    # 查询出 attribute 为 'value1', 'value3', 'value5' 的记录
+    for item in db.collection.find({'attribute': {'$regex' : r'(?i)value[135]'}}, {'_id': 0, 'attribute': 1}): 
+        print item 
+    ---------
+    # 匹配数组属性元素数量。
+    for item in db.collection.find({'attribute': {'$size': 3}}, {'_id': 0, 'attribute': 1}): print item
+    ---------
+    # 数据类型转换
+    对于一条记录 x，若其字段 'attribute' 为 <string> 型，则可以如下转换为 <int> 型。
+    x['price']=int(x['price'])
+
+    $type: 用于判断属性类型。
+        for item in db.collection.find({'attribute': {'$type':1}}): print item # 查询数字类型的
+        for item in db.collection.find({'attribute': {'$type':2}}): print item # 查询字符串类型的
+    各种类型值的代表值:
+    double:1    string: 2   object: 3   array: 4    binary data: 5
+    object id: 7    boolean: 8  date: 9 null: 10
     ---------
     # 计数
     print(db.collection.find().count()) 
@@ -132,17 +195,6 @@ def query_collection(db, collection):
     for item in db.collection.find().skip(2).limit(3): print item
     for item in db.collection.find(skip=2, limit=3): print item
     for item in db.collection.find({}, {'_id': 0, 'attribute1': 1}, skip=2, limit=3): print item
-    ---------
-    # 数据类型转换
-    对于一条记录 x，若其字段 'attribute' 为 <string> 型，则可以如下转换为 <int> 型。
-    x['price']=int(x['price'])
-
-    $type: 用于判断属性类型。
-        for item in db.collection.find({'attribute':{'$type':1}}): print item # 查询数字类型的
-        for item in db.collection.find({'attribute':{'$type':2}}): print item # 查询字符串类型的
-    各种类型值的代表值:
-    double:1    string: 2   object: 3   array: 4    binary data: 5
-    object id: 7    boolean: 8  date: 9 null: 10
     ---------
     '''
 
@@ -192,9 +244,3 @@ def create_collection(collection, file_list):
         collection.insert_one(data_record).inserted_id
 
 # create_collection(collection=collection, file_list=file_list)
-
-count = 0
-for item in collection.find({}, {'_id': 0, 'test_knowpoint': 1}, skip=2, limit=3):
-    count += 1
-    print(item)
-print(count)
