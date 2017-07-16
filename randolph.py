@@ -5,6 +5,8 @@ import os.path
 import linecache
 import chardet
 import codecs
+import pip
+from subprocess import call
 
 # 创建需要输出的文件列表, prefix 为前缀，默认值为空；filetype 为文件类型，默认值为 .txt 文本类型.
 def create_list(num, prefix = '', postfix = '', filetype = '.txt'):
@@ -136,5 +138,7 @@ def convert_file_to_utf8(filename):
 		content = data.decode(source_encoding, 'ignore') #.encode(source_encoding)
 		codecs.open(filename, 'w', encoding='utf-8').write(content)
 
-detect_file_encoding_format('TREC_10.label.txt')
-convert_file_to_utf8('TREC_10.label.txt')
+# 批量升级第三方库
+def upgrate_package():
+	for dist in pip.get_installed_distributions():
+		call("pip3 install --upgrade " + dist.project_name, shell=True)
