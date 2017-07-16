@@ -9,7 +9,8 @@ client = MongoClient('localhost', 27017)
 db = client.local
 collection = db['CNN-Sentence-Pairs-Classification-Original']
 
-file_list = ['features[0].txt', 'features[5].txt', 'features[6].txt', 'features[7].txt', 'features[8].txt', 'features[9].txt']
+file_list = ['features[0].txt', 'features[5].txt', 'features[6].txt',
+             'features[7].txt', 'features[8].txt', 'features[9].txt']
 
 def insert_collection(db, collection):
     '''
@@ -77,45 +78,60 @@ def query_collection(db, collection):
     
     # 查找符合属性 attribute1=21, attribute2=value 的多条记录，查不到时返回 None
     for item in db.colleciton.find({'attribute1': 21, 'attribute2': 'value'}): print item
-
-    * 当使用 find()函数时，对应的条件都是以字典形式表示｛'attribute1': {'$gt':12}, 'attribute2': 'value'｝，有多个条件时，都放在一个｛｝内
     ---------
     # 是否存在 (exists)
-    db.collection.find({'sex':{'$exists':True}})  # select * from 集合名 where exists 键1
-    db.collection.find({'sex':{'$exists':False}}) # select * from 集合名 where not exists 键1
+    db.collection.find({'attribute': {'$exists':True}})  # select * from 集合名 where exists 键1
+    db.collection.find({'attribute': {'$exists':False}}) # select * from 集合名 where not exists 键1
     
     ---------
     # IN
     # 查找符合属性 attribute 等于 (23, 26, 32) 的多条记录，查不到时返回 None
-    for item in db.collection.find({'attribute': {'$in':(23, 26, 32)}}): print item 
+    for item in db.collection.find({'attribute': {'$in': (23, 26, 32)}}): print item 
     # 查找符合属性 attribute 不等于 (23, 26, 32) 的多条记录，查不到时返回 None
-    for item in db.collection.find({'attribute': {'$nin':(23, 26, 32)}}): print item 
+    for item in db.collection.find({'attribute': {'$nin': (23, 26, 32)}}): print item 
+    
+    # IN 与 查询制定字段结合
+    for item in db.collection.find({'attribute': {'$in': (value1, value2)}}, {'_id': 0, 'attribute': 1})
     --------- 
     # OR
     for item in db.collection.find({"$or":[{"age":25}, {"age":28}]}): print item
     for item in db.collection.find({"$or":[{"age":{"$lte":23}}, {"age":{"$gte":33}}]}): print item
+    
+    # OR 与 查询制定字段结合
+    for item in db.collection.find({'$or': [{'attribute': value1}, {'attribute': value2}]}, {'_id': 0, 'attribute': 1})
     ---------
     # 计数
     print(db.collection.find().count()) 
     print(db.collection.find({'attribute': {'$gt':30}}).count()) 
     ---------
-    # 排序，对记录进行排序，用 sort() 函数，形如 find().sort('attribute',1/-1)，表示按某属性 attribute 的升序/降序排列，注意与后面的 1/-1 是用逗号（，）隔开
+    # 排序，对记录进行排序，用 sort() 函数，形如 find().sort([('attribute',1/-1)]) 表示按某属性 attribute 的升序/降序排列
     pymongo.ASCENDING # 表按升序排列，也可以用 1 来代替
     pymongo.DESCENDING #表按降序排列， 也可以用 -1 来代替
     
     for item in db.collection.find().sort([('attribute', pymongo.ASCENDING)]): print item
     for item in db.collection.find().sort([('attribute', pymongo.DESCENDING)]): print item
-    for item in db.collection.find().sort([('attribute1', pymongo.ASCENDING), ('attribute2', pymongo.DESCENDING)]): print item 
-    for item in db.collection.find(sort = [('attribute1', pymongo.ASCENDING), ('attribute2', pymongo.DESCENDING)]): print item
     
-    # 组合 + 排序 + 查找
-    for item in db.collection.find({'attribute1': 'value'}, sort=[['attribute1',1], ['attribute2',1]], 
-                                    fields = ['attribute1', 'attribute2', 'attribute3']): print item
+    for item in db.collection.find().sort([('attribute1', pymongo.ASCENDING), ('attribute2', pymongo.DESCENDING)]): 
+        print item 
+    
+    for item in db.collection.find(sort = [('attribute1', pymongo.ASCENDING), ('attribute2', pymongo.DESCENDING)]): 
+        print item
+    
+    # 指定字段条件查找 + 排序 + 指定字段显示
+    for item in db.collection.find({'attribute1': value}, {'_id': 0, 'attribute1': 1, 'attribute2': 1}) \
+                                .sort([('attribute1', 1), ('attribute2', -1)]):  print item
+    * 可能会出现 「OperationFailed: Sort operation used more than the maximum bytes of RAM. 
+    * Add an index, or specify a smaller limit.」 的错误，需要在后面添加一个 limit()
+    
+    for item in db.collection.find({'attribute1': value}, {'_id': 0, 'attribute1': 1, 'attribute2': 1}) \
+                                .sort([('attribute1', 1), ('attribute2', -1)]).limit(100):  print item
+    * 比如，我们要做一个排行榜功能，需要在某 collection 中查找分数最多的 100 名玩家。
     ---------
     # 从第几行开始读取(SLICE)，读取多少行(LIMIT)
     # 从第2行开始读取，读取3行记录
     for item in db.collection.find().skip(2).limit(3): print item
     for item in db.collection.find(skip=2, limit=3): print item
+    for item in db.collection.find({}, {'_id': 0, 'attribute1': 1}, skip=2, limit=3): print item
     ---------
     # 数据类型转换
     对于一条记录 x，若其字段 'attribute' 为 <string> 型，则可以如下转换为 <int> 型。
@@ -177,5 +193,8 @@ def create_collection(collection, file_list):
 
 # create_collection(collection=collection, file_list=file_list)
 
-for item in collection.find({'test_knowpoint': '020549008007001n'}):
+count = 0
+for item in collection.find({}, {'_id': 0, 'test_knowpoint': 1}, skip=2, limit=3):
+    count += 1
     print(item)
+print(count)
