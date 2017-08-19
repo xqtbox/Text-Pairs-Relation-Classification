@@ -1,16 +1,10 @@
+import sys
+
+from datetime import datetime
 from pymongo import MongoClient
+from pymongo.errors import ConnectionFailure
 from bson import ObjectId
 from tqdm import tqdm
-
-# 建立连接到默认主机（localhost）和端口（27017）。还可以指定主机和/或使用端口：
-client = MongoClient('localhost', 27017)
-# client = MongoClient('mongodb://localhost:27017')
-
-db = client.local
-collection = db['CNN-Sentence-Pairs-Classification-Original']
-
-file_list = ['features[0].txt', 'features[5].txt', 'features[6].txt',
-             'features[7].txt', 'features[8].txt', 'features[9].txt']
 
 def insert_collection(db, collection):
     '''
@@ -32,29 +26,27 @@ def insert_collection(db, collection):
 def update_collection(db, collection):
     '''
     update(criteria, objNew, upsert, mult)
-    -criteria: 查询文档，用于定位需要更新的目标文档。
-    -objNew: 修改器文档，用于说明要对找到的文档进行哪些修改。
-    -upsert: 如目标记录不存在，是否插入新文档。
-    -multi: 是否更新多个文档。
+    - criteria: 查询文档，用于定位需要更新的目标文档。
+    - objNew: 修改器文档，用于说明要对找到的文档进行哪些修改。
+    - upsert: 如目标记录不存在，是否插入新文档。
+    - multi: 是否更新多个文档。
     
     ---------
-    # '$set'
+    # '$set' & '$addToSet'
     db.collection.update({'attribute1': value1, 'attribute2': value2}, \
                         {'$set': {'attribute1': new_value1}, '$set':{'attribute2': new_value2}, \
                         '$addToSet':{'attribute3': value3}}, upsert=True)
     # 其中 '$set' 表示对原来的记录进行修改，'$addToSet' 表示添加 'attribute3' 字段到 
     # {'attribute1'=new_value1, 'attribute2'=new_value2} 这条记录中。
+    # '$addToSet'和'$push'类似，不过仅在该元素不存在时才添加 (Set 表示不重复元素集合)。
     --------- 
-    # '$unset' 表示移除字段属性
+    # '$unset': 移除字段属性。
     db.collection.update({'attribute1': value1}, {'$unset': {'attribute2': value2}, '$unset': {'attribute3': value3}})
     ---------
     # '$push' & 'pushAll'
     db.collection.update({'attribute1': value1}, {'$push': {'attribute2': value2}})
     db.collection.update({'attribute1': value1}, {'$pushAll': {'attribute2': value2}})
     ---------
-    # '$addToSet': 和 $push 类似，不过仅在该元素不存在时才添加 (Set 表示不重复元素集合)。
-    db.collection.update({'attribute1': value1}, {'$addToSet': {'attribute2': value2}})
-
     # '$each': 添加多个元素。
     db.collection.update({'attribute1': value1}, {'$addToSet': {'attribute2': {'$each': [1,2,3,4]}}})
     ---------
@@ -104,14 +96,14 @@ def query_collection(db, collection):
     db.collection.find_one({'attribute': value}) # 只查找某属性 attribute=value 的一条记录，查不到时返回 None
     
     ---------
-    # 只显示集合中的所有记录的 attribute1、attribute2 属性值, '_id': 0 表示一般忽略不显示 _id 的值得， 'attribute': 1 表示显示该字段
+    # 只显示集合中的所有记录的 attribute1、attribute2 属性值, '_id': 0 表示一般忽略不显示 _id 的值， 'attribute': 1 表示显示该字段
     # 如果不指定，是默认显示所有字段（包括 _id ）
     for item in db.colleciton.find({}, {'_id': 0, 'attribute1': 1, 'attribute2': 1}): print item
 
     # 显示集合中所有 attribute=21 的记录的 attribute1、attribute2 属性值
     for item in db.collection.find({'attribute2': 21}, {'_id': 0, 'attribute1': 1, 'attribute2': 1}): print item
     ---------
-    # 查找符合属性 12<attribute1<15, attribute2=value, attribute2=value 的多条记录，查不到时返回 None
+    # 查找符合属性 12<attribute1<15, attribute2=value 的多条记录，查不到时返回 None
     for item in db.colleciton.find({'attribute1': {'$gt': 12, '$lt': 15}, 'attribute2': value}): print item
     
     # 查找符合属性 attribute1=21, attribute2=value 的多条记录，查不到时返回 None
@@ -140,7 +132,7 @@ def query_collection(db, collection):
     # OR 与 查询制定字段结合
     for item in db.collection.find({'$or': [{'attribute': value1}, {'attribute': value2}]}, {'_id': 0, 'attribute': 1})
     ---------
-    # 判断数组属性是否包含全部条件。
+    # 判断数组属性是否包含全部条件
     for item in db.collection.find({'attribute': {'$all': (23, 26, 32)}}): print item
     * 注意和 $in 的区别。$in 是检查目标属性值是条件表达式中的一员，而 $all 则要求属性值包含全部条件元素。
     ---------
@@ -149,7 +141,7 @@ def query_collection(db, collection):
     for item in db.collection.find({'attribute': {'$regex' : r'(?i)value[135]'}}, {'_id': 0, 'attribute': 1}): 
         print item 
     ---------
-    # 匹配数组属性元素数量。
+    # 匹配数组属性元素数量
     for item in db.collection.find({'attribute': {'$size': 3}}, {'_id': 0, 'attribute': 1}): print item
     ---------
     # 数据类型转换
@@ -242,5 +234,24 @@ def create_collection(collection, file_list):
             'test_knowpoint': result[5][i]
         }
         collection.insert_one(data_record).inserted_id
+
+
+file_list = ['features[0].txt', 'features[5].txt', 'features[6].txt',
+             'features[7].txt', 'features[8].txt', 'features[9].txt']
+
+def main():
+    # 建立连接到默认主机（localhost）和端口（27017）。还可以指定主机和/或使用端口：
+    try:
+        client = MongoClient('localhost', 27017)
+        print('Connected Successfully!')
+    except ConnectionFailure as e:
+        sys.stderr.write('Could not connect to MongoDB: %s' % e)
+        sys.exit(1)
+
+    db = client.local
+    collection = db['CNN-Sentence-Pairs-Classification-Original']
+
+if __name__ == "__main__":
+    main()
 
 # create_collection(collection=collection, file_list=file_list)
