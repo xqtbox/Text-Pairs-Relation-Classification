@@ -32,6 +32,9 @@
 ehthumbs.db
 Thumbs.db
 
+### JetBrain config files ###
+.idea
+
 ### Python ###
 # Byte-compiled / optimized / DLL files
 *.npy
