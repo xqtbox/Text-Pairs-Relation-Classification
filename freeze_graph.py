@@ -1,4 +1,7 @@
-"""Converts checkpoint variables into Const ops in a standalone GraphDef file.
+# -*- coding:utf-8 -*-
+
+"""
+Converts checkpoint variables into Const ops in a standalone GraphDef file.
 
 This script is designed to take a GraphDef proto, a SaverDef proto, and a set of
 variable values stored in a checkpoint file, and output a GraphDef with all of
@@ -19,6 +22,7 @@ bazel-bin/tensorflow/python/tools/freeze_graph \
 You can also look at freeze_graph_test.py for an example of how to use it.
 
 """
+
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
@@ -27,7 +31,6 @@ import tensorflow as tf
 
 from google.protobuf import text_format
 from tensorflow.python.framework import graph_util
-
 
 FLAGS = tf.app.flags.FLAGS
 
@@ -40,12 +43,13 @@ tf.app.flags.DEFINE_string("output_node_names", "", """The name of the output no
 tf.app.flags.DEFINE_string("restore_op_name", "save/restore_all", """The name of the master restore operator.""")
 tf.app.flags.DEFINE_string("filename_tensor_name", "save/Const:0", """The name of the tensor holding the save path.""")
 tf.app.flags.DEFINE_boolean("clear_devices", True, """Whether to remove device specifications.""")
-tf.app.flags.DEFINE_string("initializer_nodes", "", "comma separated list of " "initializer nodes to run before freezing.")
+tf.app.flags.DEFINE_string("initializer_nodes", "",
+                           "comma separated list of " "initializer nodes to run before freezing.")
 
 
 def freeze_graph(input_graph, input_saver, input_binary, input_checkpoint,
-                                 output_node_names, restore_op_name, filename_tensor_name,
-                                 output_graph, clear_devices, initializer_nodes):
+                 output_node_names, restore_op_name, filename_tensor_name,
+                 output_graph, clear_devices, initializer_nodes):
     """Converts all variables in a graph and checkpoint into constants."""
 
     if not tf.gfile.Exists(input_graph):
@@ -94,18 +98,19 @@ def freeze_graph(input_graph, input_saver, input_binary, input_checkpoint,
             if initializer_nodes:
                 sess.run(initializer_nodes)
         output_graph_def = graph_util.convert_variables_to_constants(
-                sess, input_graph_def, output_node_names.split(","))
+            sess, input_graph_def, output_node_names.split(","))
 
     with tf.gfile.GFile(output_graph, "wb") as f:
         f.write(output_graph_def.SerializeToString())
     print("%d ops in the final graph." % len(output_graph_def.node))
 
 
-def main(unused_args):
+def main():
     freeze_graph(FLAGS.input_graph, FLAGS.input_saver, FLAGS.input_binary,
-                             FLAGS.input_checkpoint, FLAGS.output_node_names,
-                             FLAGS.restore_op_name, FLAGS.filename_tensor_name,
-                             FLAGS.output_graph, FLAGS.clear_devices, FLAGS.initializer_nodes)
+                 FLAGS.input_checkpoint, FLAGS.output_node_names,
+                 FLAGS.restore_op_name, FLAGS.filename_tensor_name,
+                 FLAGS.output_graph, FLAGS.clear_devices, FLAGS.initializer_nodes)
+
 
 if __name__ == "__main__":
     tf.app.run()

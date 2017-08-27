@@ -1,21 +1,19 @@
-import randolph
-import model_exports
-import tensorflow as tf
-import datetime
+# -*- coding:utf-8 -*-
+
+import os
 import numpy as np
+import tensorflow as tf
 import data_helpers
-from text_cnn import TextCNN
-from tensorflow.contrib import learn
 
-model_log = '1490175368'
-Subset = '11'
-save_file = 'result' + Subset + '.txt'
+MODEL_LOG = '1490175368'
+SUBSET = '11'
+SAVE_FILE = 'result' + SUBSET + '.txt'
 
-BASE_DIR = randolph.cur_file_dir()
-VALIDATIONSET_DIR = BASE_DIR + '/Model Validation' + '/Model' + Subset + '_Validation.txt'
-TESTSET_DIR = BASE_DIR + '/Model Test' + '/Model' + Subset + '_Test.txt'
-MODEL_DIR = BASE_DIR + '/runs/' + model_log + '/checkpoints/'
-model_file = BASE_DIR + '/runs/' + model_log + '/checkpoints/output_graph.pb'
+BASE_DIR = os.getcwd()
+VALIDATIONSET_DIR = BASE_DIR + '/Model Validation' + '/Model' + SUBSET + '_Validation.txt'
+TESTSET_DIR = BASE_DIR + '/Model Test' + '/Model' + SUBSET + '_Test.txt'
+MODEL_DIR = BASE_DIR + '/runs/' + MODEL_LOG + '/checkpoints/'
+MODEL_FILE = BASE_DIR + '/runs/' + MODEL_LOG + '/checkpoints/output_graph.pb'
 
 # Data loading params
 tf.flags.DEFINE_string("validation_data_file", VALIDATIONSET_DIR, "Data source for the validation data")
@@ -66,65 +64,63 @@ print(checkpoint_file)
 
 graph = tf.Graph()
 with graph.as_default():
-	session_conf = tf.ConfigProto(
-		allow_soft_placement=FLAGS.allow_soft_placement,
-		log_device_placement=FLAGS.log_device_placement)
-	session_conf.gpu_options.allow_growth = FLAGS.gpu_options_allow_growth
-	sess = tf.Session(config=session_conf)
-	with sess.as_default():
-		# Load the saved meta graph and restore variables
-		saver = tf.train.import_meta_graph("{}.meta".format(checkpoint_file))
-		saver.restore(sess, checkpoint_file)
+    session_conf = tf.ConfigProto(
+        allow_soft_placement=FLAGS.allow_soft_placement,
+        log_device_placement=FLAGS.log_device_placement)
+    session_conf.gpu_options.allow_growth = FLAGS.gpu_options_allow_growth
+    sess = tf.Session(config=session_conf)
+    with sess.as_default():
+        # Load the saved meta graph and restore variables
+        saver = tf.train.import_meta_graph("{}.meta".format(checkpoint_file))
+        saver.restore(sess, checkpoint_file)
 
-		# Get the placeholders from the graph by name
-		input_x_front = graph.get_operation_by_name("input_x_front").outputs[0]
-		input_x_behind = graph.get_operation_by_name("input_x_behind").outputs[0]
+        # Get the placeholders from the graph by name
+        input_x_front = graph.get_operation_by_name("input_x_front").outputs[0]
+        input_x_behind = graph.get_operation_by_name("input_x_behind").outputs[0]
 
-		# input_y = graph.get_operation_by_name("input_y").outputs[0]
-		dropout_keep_prob = graph.get_operation_by_name("dropout_keep_prob").outputs[0]
+        # input_y = graph.get_operation_by_name("input_y").outputs[0]
+        dropout_keep_prob = graph.get_operation_by_name("dropout_keep_prob").outputs[0]
 
-		# pre-trained_word2vec
-		pretrained_embedding = graph.get_operation_by_name("embedding/W").outputs[0]
+        # pre-trained_word2vec
+        pretrained_embedding = graph.get_operation_by_name("embedding/W").outputs[0]
 
-		# Tensors we want to evaluate
-		scores = graph.get_operation_by_name("output/scores").outputs
-		predictions = graph.get_operation_by_name("output/predictions").outputs[0]
-		softmaxScores = graph.get_operation_by_name("output/softmaxScores").outputs[0]
-		sigmoidScores = graph.get_operation_by_name("output/sigmoidScores").outputs[0]
-		topKPreds = graph.get_operation_by_name("output/topKPreds").outputs[0]
+        # Tensors we want to evaluate
+        scores = graph.get_operation_by_name("output/scores").outputs
+        predictions = graph.get_operation_by_name("output/predictions").outputs[0]
+        softmaxScores = graph.get_operation_by_name("output/softmaxScores").outputs[0]
+        sigmoidScores = graph.get_operation_by_name("output/sigmoidScores").outputs[0]
+        topKPreds = graph.get_operation_by_name("output/topKPreds").outputs[0]
 
-		# Generate batches for one epoch
-		batches = data_helpers.batch_iter(list(zip(x_test_front, x_test_behind)), FLAGS.batch_size, 1, shuffle=False)
+        # Generate batches for one epoch
+        batches = data_helpers.batch_iter(list(zip(x_test_front, x_test_behind)), FLAGS.batch_size, 1, shuffle=False)
 
-		# Collect the predictions here
-		all_scores = []
-		all_softMaxScores = []
-		all_sigmoidScores = []
-		all_predictions = []
-		all_topKPreds = []
+        # Collect the predictions here
+        all_scores = []
+        all_softMaxScores = []
+        all_sigmoidScores = []
+        all_predictions = []
+        all_topKPreds = []
 
-		for x_test_batch in batches:
-			x_batch_front, x_batch_behind = zip(*x_test_batch)
-			feed_dict = {
-				input_x_front: x_batch_front,
-				input_x_behind: x_batch_behind,
-				dropout_keep_prob: 1.0
-			}
-			batch_scores = sess.run(scores, feed_dict)
-			all_scores = np.append(all_scores, batch_scores)
+        for x_test_batch in batches:
+            x_batch_front, x_batch_behind = zip(*x_test_batch)
+            feed_dict = {
+                input_x_front: x_batch_front,
+                input_x_behind: x_batch_behind,
+                dropout_keep_prob: 1.0
+            }
+            batch_scores = sess.run(scores, feed_dict)
+            all_scores = np.append(all_scores, batch_scores)
 
-			batch_softMax_scores = sess.run(softmaxScores, feed_dict)
-			all_softMaxScores = np.append(all_softMaxScores, batch_softMax_scores)
+            batch_softMax_scores = sess.run(softmaxScores, feed_dict)
+            all_softMaxScores = np.append(all_softMaxScores, batch_softMax_scores)
 
-			batch_sigmoid_Scores = sess.run(sigmoidScores, feed_dict)
-			all_sigmoidScores = np.append(all_sigmoidScores, batch_sigmoid_Scores)
+            batch_sigmoid_Scores = sess.run(sigmoidScores, feed_dict)
+            all_sigmoidScores = np.append(all_sigmoidScores, batch_sigmoid_Scores)
 
-			batch_predictions = sess.run(predictions, feed_dict)
-			all_predictions = np.concatenate([all_predictions, batch_predictions])
+            batch_predictions = sess.run(predictions, feed_dict)
+            all_predictions = np.concatenate([all_predictions, batch_predictions])
 
-			batch_topKPreds = sess.run(topKPreds, feed_dict)
-			all_topKPreds = np.append(all_topKPreds, batch_topKPreds)
+            batch_topKPreds = sess.run(topKPreds, feed_dict)
+            all_topKPreds = np.append(all_topKPreds, batch_topKPreds)
 
-		# all_softMaxScores    = np.append(all_softMaxScores, [[smxScore] for smxScore in batch_softMax_scores])
-
-		np.savetxt(save_file, list(zip(all_predictions, all_topKPreds)), fmt='%s')
+        np.savetxt(SAVE_FILE, list(zip(all_predictions, all_topKPreds)), fmt='%s')

@@ -1,22 +1,27 @@
+# -*- coding:utf-8 -*-
+
+import os
+import multiprocessing
 import numpy as np
 import gensim
-import randolph
-import multiprocessing
+import matplotlib.pyplot as plt
 import matplotlib.patheffects as PathEffects
+
+from pylab import mpl
 from gensim import corpora
 from gensim.models import word2vec
 from gensim.corpora import Dictionary
 from tflearn.data_utils import to_categorical, pad_sequences
-# from sklearn.manifold import TSNE
-# from pylab import mpl
-# mpl.rcParams['font.sans-serif'] = ['FangSong'] # 指定默认字体
-# mpl.rcParams['axes.unicode_minus'] = False # 解决保存图像是负号'-'显示为方块的问题
-# import matplotlib.pyplot as plt
+from sklearn.manifold import TSNE
 
-BASE_DIR = randolph.cur_file_dir()
+mpl.rcParams['font.sans-serif'] = ['FangSong']  # 指定默认字体
+mpl.rcParams['axes.unicode_minus'] = False  # 解决保存图像是负号'-'显示为方块的问题
+
+BASE_DIR = os.getcwd()
 TEXT_DIR = BASE_DIR + '/content.txt'
 VOCABULARY_DICT_DIR = BASE_DIR + '/math.dict'
 WORD2VEC_DIR = BASE_DIR + '/math.model'
+
 
 def create_vocab(text_file):
     texts = []
@@ -29,28 +34,30 @@ def create_vocab(text_file):
     vocab_dict.save(VOCABULARY_DICT_DIR)
     return vocab_dict
 
+
 # create_vocab(TEXT_DIR)
 
-def word2vec_train(embedding_size, inputFile=TEXT_DIR, outputFile=WORD2VEC_DIR):
-    sentences = word2vec.LineSentence(inputFile)
+def word2vec_train(embedding_size, input_file=TEXT_DIR, output_file=WORD2VEC_DIR):
+    sentences = word2vec.LineSentence(input_file)
 
     # sg=0 -> CBOW model; sg=1 -> skip-gram model.
     # 生成 embedding_size 的词向量 model
     model = gensim.models.Word2Vec(sentences, size=embedding_size, min_count=0,
                                    sg=0, workers=multiprocessing.cpu_count())
-    model.save(outputFile)
+    model.save(output_file)
+
 
 # word2vec_train(300)
 
-def data_word2vec(inputFile, dictionary):
+def data_word2vec(input_file, dictionary):
     def token_to_index(content, dictionary):
-        list = []
+        result = []
         for item in content:
             if item != '<end>' and (len(item) > 0):
-                list.append(dictionary.token2id[item])
-        return list
+                result.append(dictionary.token2id[item])
+        return result
 
-    with open(inputFile) as fin:
+    with open(input_file) as fin:
         labels = []
         front_content_indexlist = []
         behind_content_indexlist = []
@@ -65,9 +72,9 @@ def data_word2vec(inputFile, dictionary):
             for item in content:
                 if item == '<end>':
                     end_tag = True
-                if end_tag == False:
+                if not end_tag:
                     front_content.append(item)
-                if end_tag == True:
+                if end_tag:
                     behind_content.append(item)
 
             labels.append(label)
@@ -90,12 +97,13 @@ def load_word2vec_matrix(vocab_size, embedding_size):
     model = gensim.models.Word2Vec.load(WORD2VEC_DIR)
     vocab_dict = Dictionary.load(VOCABULARY_DICT_DIR)
 
-    Vector = np.zeros([vocab_size, embedding_size])
+    vector = np.zeros([vocab_size, embedding_size])
     for value, key in vocab_dict.items():
         if len(key) > 0:
-            Vector[value] = model[key]
+            vector[value] = model[key]
 
-    return Vector
+    return vector
+
 
 def max_seq_len_cal(content_indexlist):
     result = 0
@@ -112,11 +120,11 @@ def load_data_and_labels(data_file, MAX_SEQUENCE_LENGTH, EMBEDDING_SIZE):
     """
     # Load vocabulary dict file
     vocab_dict = create_vocab(TEXT_DIR)
-    #Load word2vec file
-    Vector = word2vec_train(EMBEDDING_SIZE, TEXT_DIR, WORD2VEC_DIR)
+    # Load word2vec file
+    word2vec_train(EMBEDDING_SIZE, TEXT_DIR, WORD2VEC_DIR)
 
     # Load data from files and split by words
-    data = data_word2vec(inputFile=data_file, dictionary=vocab_dict)
+    data = data_word2vec(input_file=data_file, dictionary=vocab_dict)
     max_seq_len = max(max_seq_len_cal(data.front_tokenindex), max_seq_len_cal(data.behind_tokenindex))
     print('Found %s texts.' % data.number)
     print('Max sequence length is:', max_seq_len)
@@ -128,9 +136,11 @@ def load_data_and_labels(data_file, MAX_SEQUENCE_LENGTH, EMBEDDING_SIZE):
     print('Shape of label tensor:', labels.shape)
     return data_front, data_behind, labels
 
+
 def load_vocab_size(vocab_data_file=VOCABULARY_DICT_DIR):
     vocab_dict = Dictionary.load(vocab_data_file)
     return len(vocab_dict.items())
+
 
 # pretrained_word2vec_matrix = load_word2vec_matrix(load_vocab_size(), embedding_size=128)
 # print(pretrained_word2vec_matrix)
@@ -139,35 +149,36 @@ def load_vocab_size(vocab_data_file=VOCABULARY_DICT_DIR):
 
 def plot_word2vec():
     model = gensim.models.Word2Vec.load(WORD2VEC_DIR)
-    X = []
-    Y = []
+    data_x = []
+    data_y = []
     for index, item in enumerate(model.wv.vocab):
-        X.append(model[item])
-        Y.append(item)
+        data_x.append(model[item])
+        data_y.append(item)
     tsne = TSNE(n_components=2)
-    X_tsne = tsne.fit_transform(X)
-    
-    def scatter(X, Y):
+    x_tsne = tsne.fit_transform(data_x)
+
+    def scatter(x, y):
         f = plt.figure(figsize=(50, 50))
         ax = plt.subplot(aspect='equal')
-        sc = ax.scatter(X[:, 0], X[:, 1], lw=0, s=40)
+        sc = ax.scatter(x[:, 0], x[:, 1], lw=0, s=40)
         plt.xlim(-25, 25)
         plt.ylim(-25, 25)
         ax.axis('off')
         ax.axis('tight')
         txts = []
-        for i in range(len(Y)):
+        for i in range(len(y)):
             # Position of each label.
             if i % 20 == 0:
-                txt = ax.text(X[i, 0], X[i, 1], Y[i], fontsize=10)
+                txt = ax.text(x[i, 0], x[i, 1], y[i], fontsize=10)
                 txt.set_path_effects([
                     PathEffects.Stroke(linewidth=5, foreground="w"),
                     PathEffects.Normal()])
                 txts.append(txt)
         return f, ax, sc, txts
 
-    scatter(X_tsne, Y)
+    scatter(x_tsne, data_y)
     plt.savefig('word_vector.png', dpi=150)
+
 
 def batch_iter(data, batch_size, num_epochs, shuffle=True):
     """
@@ -175,10 +186,10 @@ def batch_iter(data, batch_size, num_epochs, shuffle=True):
     函数效果：对 data，一共分成 num_epochs 个阶段（epoch），在每个 epoch 内，如果 shuffle=True，就将 data 重新洗牌，
     批量生成 (yield) 一批一批的重洗过的data，每批大小是 batch_size，一共生成 int(len(data)/batch_size)+1 批。
     Generate a  batch iterator for a dataset.
-    :param data:
-    :param batch_size:每批 data 的 size
-    :param num_epochs:阶段数目
-    :param shuffle:洗牌
+    :param data: The data
+    :param batch_size: The size of the data batch
+    :param num_epochs: The number of epoches
+    :param shuffle: Shuffle or not
     :return:
     """
     data = np.array(data)

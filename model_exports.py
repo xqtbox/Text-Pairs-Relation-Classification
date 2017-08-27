@@ -1,5 +1,8 @@
+# -*- coding:utf-8 -*-
+
 import tensorflow as tf
 import freeze_graph
+
 
 def freeze_model(input_graph_path, output_graph_path, output_node_names, checkpoint_path):
     # routine.
@@ -14,6 +17,7 @@ def freeze_model(input_graph_path, output_graph_path, output_node_names, checkpo
                               output_node_names, restore_op_name,
                               filename_tensor_name, output_graph_path,
                               clear_devices, "")
+
 
 def load_model(frozen_graph_filename):
     # First we need to load the protobuf file from the disk and parse it to retrieve the

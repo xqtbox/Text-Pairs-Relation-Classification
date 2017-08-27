@@ -1,4 +1,9 @@
-# Useful 「file and folder」function collection.
+# Randolph's Package
+#
+# Copyright (C) 2015-2017 Randolph
+# Author: Randolph <chinawolfman@hotmail.com>
+
+import re
 import sys
 import os
 import os.path
@@ -8,137 +13,202 @@ import codecs
 import pip
 from subprocess import call
 
-# 创建需要输出的文件列表, prefix 为前缀，默认值为空；filetype 为文件类型，默认值为 .txt 文本类型.
-def create_list(num, prefix = '', postfix = '', filetype = '.txt'):
-	outputFile_list = []
-	for i in range(num):
-		outputFile_list.append(prefix + str(i+1) + postfix + filetype)
-	return outputFile_list
 
-# 显示当前代码文件所处的绝对路径
-def cur_file_dir():
-	path = sys.path[0]
-	if os.path.isdir(path):	return path
-	elif os.path.isfile(path):
-		return os.path.dirname(path)
+def upgrade_package():
+    """Upgrade all installed python3 packages."""
+    for dist in pip.get_installed_distributions():
+        call("pip3 install --upgrade " + dist.project_name, shell=True)
 
-# 显示当前文件下的所有文件（包括隐藏文件）
+
+def create_list(num, prefix='', postfix='', filetype='.txt'):
+    """
+    Create the file list.
+    :param num: The number of the file
+    :param prefix: The prefix of the file
+    :param postfix: The postfix of the file
+    :param filetype: The file type of the file
+    """
+    output_file_list = []
+    for i in range(num):
+        output_file_list.append(prefix + str(i + 1) + postfix + filetype)
+    return output_file_list
+
+
 def list_cur_all_file():
-	for filename in os.listdir(cur_file_dir()):
-		print(filename)
+    """Return a list containing the names of the files in the directory(including the hidden files)."""
+    file_list = [filename for filename in os.listdir(os.getcwd())]
+    print(file_list)
+    return file_list
 
-# 显示当前文件下的可视文件
-def listdir_nohidden(path):
-	file_list = []
-	for f in os.listdir(path):
-		if not f.startswith('.'):
-			file_list.append(f)
-	print(file_list)
-	return file_list
 
-# 计算小文件的行数
-def count_line_smallFile(inputFile):
-	count = len(open(inputFile, 'r').readlines())
-	print(count)
-	return count
+def listdir_nohidden():
+    """Return a list containing the names of the files in the directory."""
+    file_list = [filename for filename in os.listdir(os.getcwd()) if not filename.startswith('.')]
+    print(file_list)
+    return file_list
 
-# 计算大文件（超过1G）的行数，加入enurmerate计数器
-def count_line_bigFile(inputFile):
-	count = -1
-	for count, line in enumerate(open(inputFile, 'r')):
-		pass
-	count += 1
-	print(count)
-	return count
 
-# 计算大文件（超过1G）的行数，放入缓存防止内存过载
-def count_line_best(inputFile):
-	count = 0
-	fin = open(inputFile, 'rb')
-	while True:
-		buffer = fin.read(8192*1024)
-		if not buffer:
-			break
-		count += buffer.decode('utf-8').count('\n')
-	fin.close()
-	print(count)
-	return count
+def extract(input_file, output_file):
+    """Extract the first column content of the file to the new file."""
+    lines = [eachline.strip().split('\t')[0] for eachline in open(input_file, 'r')]
+    open(output_file, 'w').write(''.join((item + '\n') for item in lines))
 
-# 提取文件首列信息
-def extract(inputFile, outputFile):
-	lines = [eachline.strip().split('\t')[0] for eachline in open(inputFile, 'r')]
-	open(outputFile, 'w').write(''.join((item + '\n') for item in lines))
-	
-# 判断两个文件的首列信息是否存在重复信息
-def judge(inputFile1, inputFile2):
-	lines_1 = [eachline.strip().split('\t')[0] for eachline in open(inputFile1, 'r')]
-	lines_2 = [eachline.strip().split('\t')[0] for eachline in open(inputFile2, 'r')]
-	count = 0
-	for item in lines_1:
-		if item in lines_2:	count += 1
-		else:
-			print(item)
-	print(count)
 
-# 获取从第 N 行开始后面所有的信息
-def get_line_and_behind(inputFile, N):
-	string = linecache.getlines(inputFile, N)
-	return string 
+def judge(input_file1, input_file2):
+    """To determine whether the first column content of the two files exist duplicate information."""
+    lines_1 = [eachline.strip().split('\t')[0] for eachline in open(input_file1, 'r')]
+    lines_2 = [eachline.strip().split('\t')[0] for eachline in open(input_file2, 'r')]
+    count = 0
+    for item in lines_1:
+        if item in lines_2:
+            count += 1
+        else:
+            print(item)
+    if count > 0:
+        print('Total same info number: %d' % count)
+    else:
+        print('Exactly the same content.')
 
-# 获取具体某一行的内容
-def get_line_content(inputFile, N):
-	string = linecache.getline(inputFile, N)
-	return string 
 
-# 根据某列(index)内容排序, index 表示需要根据哪一列内容进行排序
-def sort(File, index):
-	sorted_lines = sorted(open(File, 'r'), key=lambda x: float(x.strip().split('\t')[index]), reverse = True)
-	open(File, 'w').write(''.join(sorted_lines))
-	
-# 某一目录下的所有文件复制到指定目录中	
-def copyFiles(sourceDir, targetDir):
-	for file in os.listdir(sourceDir): 
-		sourceFile = os.path.join(sourceDir, file) 
-		targetFile = os.path.join(targetDir, file) 
-		if os.path.isfile(sourceFile): 
-			if not os.path.exists(targetDir): 
-				os.makedirs(targetDir) 
-			if not os.path.exists(targetFile) or(os.path.exists(targetFile) \
-				and (os.path.getsize(targetFile) != os.path.getsize(sourceFile))): 
-				open(targetFile, "wb").write(open(sourceFile, "rb").read()) 
-			if os.path.isdir(sourceFile): 
-				First_Directory = False
-				copyFiles(sourceFile, targetFile)
+def copy_files(source_dir, target_dir):
+    """Copy all files of the source path to the target path."""
+    for file in os.listdir(source_dir):
+        source_file = os.path.join(source_dir, file)
+        target_file = os.path.join(target_dir, file)
+        if os.path.isfile(source_file):
+            if not os.path.exists(target_dir):
+                os.makedirs(target_dir)
+            if not os.path.exists(target_file) or (os.path.exists(target_file) and (
+                    os.path.getsize(target_file) != os.path.getsize(source_file))):
+                open(target_file, "wb").write(open(source_file, "rb").read())
+            if os.path.isdir(source_file):
+                copy_files(source_file, target_file)
 
-# 删除一级目录下的所有文件
-def removeFileInFirstDir(targetDir): 
-	for file in os.listdir(targetDir):
-		targetFile = os.path.join(targetDir, file)
-		if os.path.isfile(targetFile):
-			os.remove(targetFile)
 
-# 检测文件的编码格式
-def detect_file_encoding_format(filename):
-	with open(filename, 'rb') as f:
-		data = f.read()
-	source_encoding = chardet.detect(data)
-	print(source_encoding)
+def remove_file_in_first_dir(target_dir):
+    """Delete all files of the target path."""
+    for file in os.listdir(target_dir):
+        target_file = os.path.join(target_dir, file)
+        if os.path.isfile(target_file):
+            os.remove(target_file)
 
-# 将文件的编码格式转换成'utf-8'
-def convert_file_to_utf8(filename):
-	# !!! does not backup the origin file
-	with open(filename, "rb") as f:
-		data = f.read()
-	source_encoding = chardet.detect(data)['encoding']
-	if source_encoding == None:
-		print("??", filename)
-		return
-	print("  ", source_encoding, filename)
-	if source_encoding != 'utf-8' and source_encoding != 'UTF-8-SIG':
-		content = data.decode(source_encoding, 'ignore') #.encode(source_encoding)
-		codecs.open(filename, 'w', encoding='utf-8').write(content)
 
-# 批量升级第三方库
-def upgrate_package():
-	for dist in pip.get_installed_distributions():
-		call("pip3 install --upgrade " + dist.project_name, shell=True)
+class Text(object):
+    """
+    This class brings together a variety of functions for
+    text analysis, and provides simple, interactive interfaces.
+    """
+    def __init__(self, filename):
+        self.filename = filename
+
+    @property
+    def cur_path(self):
+        """Returns the path of the file."""
+        return os.path.abspath(self.filename)
+
+    @property
+    def line_num(self):
+        """Returns the line number of the file."""
+        count = 1
+        with open(self.filename, 'rb') as fin:
+            while True:
+                buffer = fin.read(8192 * 1024)
+                if not buffer:
+                    break
+                count += buffer.decode('utf-8').count('\n')
+        return count
+
+    @property
+    def tokens(self):
+        """Return the word tokens of the file content."""
+        with open(self.filename, 'r') as fin:
+            tokens = []
+            for eachline in fin:
+                line = re.split(r'(\.|;|,|!|\?|\s)\s*', eachline)
+                for item in line:
+                    if item != ' ':
+                        tokens.append(item)
+        return tokens
+
+    @property
+    def sentence_tokens(self):
+        """Return the sentence tokens of the file content."""
+        with open(self.filename, 'r') as fin:
+            sentence_tokens = []
+            for eachline in fin:
+                line = []
+                eachline = re.split(r'(\.|;|,|!|\?|\s)\s*', eachline)
+                for item in eachline:
+                    if item != ' ' and item != '\n':
+                        line.append(item)
+                sentence_tokens.append(line)
+        return sentence_tokens
+
+    def get_after_lines_content(self, n):
+        """Get the content after the N line of the file."""
+        string = linecache.getlines(self.filename, n)
+        return string
+
+    def get_line_content(self, n):
+        """Get the N line content of the file."""
+        string = linecache.getline(self.filename, n)
+        return string
+
+    def sort(self, index):
+        """
+        Sort the file content according to the 'index' row to a new file.
+        :param index: The row of the file content need to sort
+        """
+        sorted_lines = sorted(open(self.filename, 'r'), key=lambda x: float(x.strip().split('\t')[index]), reverse=True)
+        open(self.filename, 'w').write(''.join(sorted_lines))
+
+    def detect_file_encoding_format(self):
+        """Detect the encoding of the given file."""
+        with open(self.filename, 'rb') as f:
+            data = f.read()
+        source_encoding = chardet.detect(data)
+        print(source_encoding)
+        return source_encoding
+
+    def convert_file_to_utf8(self):
+        """Convert the encoding of the file to 'utf-8'(does not backup the origin file)."""
+        with open(self.filename, "rb") as f:
+            data = f.read()
+        source_encoding = chardet.detect(data)['encoding']
+        if source_encoding is None:
+            print("??", self.filename)
+            return
+        print("  ", source_encoding, self.filename)
+        if source_encoding != 'utf-8' and source_encoding != 'UTF-8-SIG':
+            content = data.decode(source_encoding, 'ignore')  # .encode(source_encoding)
+            codecs.open(self.filename, 'w', encoding='utf-8').write(content)
+
+    def concordance(self, word, width=79, lines=25):
+        """
+        Print a concordance for ``word`` with the specified context window.
+        Word matching is not case-sensitive.
+        """
+        half_width = (width - len(word) - 2) // 2
+        context = width // 4  # approx number of words of context
+
+        tokens = self.tokens
+        offsets = []
+        for index, item in enumerate(tokens):
+            if item == word:
+                offsets.append(index)
+
+        if offsets:
+            lines = min(lines, len(offsets))
+            print("Displaying %s of %s matches:" % (lines, len(offsets)))
+            for i in offsets:
+                if lines <= 0:
+                    break
+                left = (' ' * half_width +
+                        ' '.join(tokens[i - context:i]))
+                right = ' '.join(tokens[i + 1:i + context])
+                left = left[-half_width:]
+                right = right[:half_width]
+                print(left, tokens[i], right)
+                lines -= 1
+        else:
+            print("No matches")
