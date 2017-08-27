@@ -1,3 +1,5 @@
+# -*- coding:utf-8 -*-
+#
 # Randolph's Package
 #
 # Copyright (C) 2015-2017 Randolph
