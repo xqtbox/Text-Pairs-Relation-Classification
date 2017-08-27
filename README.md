@@ -1,15 +1,15 @@
 ## CNN for Chinese Text Classification in Tensorflow
 
-This project is used by my Graduation Design, and it is also a study of TensorFlow, familiar with CNN, RNN and other neural networks.
+This project is used by my bachelor graduation project, and it is also a study of TensorFlow, familiar with CNN, RNN and other neural networks.
 
-The main objective of the project is to determine whether the two are similar (two classification problems) by the given two sentences. 
+The main objective of the project is to determine whether the two sentences are similar in sentence meaning (binary classification problems) by the two given sentences. 
 
-The project refer to [dennybritz/cnn-text-classification-tf](https://github.com/dennybritz/cnn-text-classification-tf), make the data helper supports Chinese language (Task required) and modified the network structure(Based on my task).
+The project refer to [dennybritz/cnn-text-classification-tf](https://github.com/dennybritz/cnn-text-classification-tf), make the data helper supports Chinese language (Task required) and modified the network structure (Based on my task).
 
 ## Requirements
 
-- Python 3.4.x
-- Tensorflow 1.0.0
+- Python 3.x
+- Tensorflow 1.0.0 +
 - Numpy
 - Gensim
 
@@ -22,7 +22,6 @@ Research data may attract copyright protection under China law. Thus, there is o
 ## Pre-trained Word Vectors
 
 Use `gensim` package to pre-train my data.
-
 
 
 ## Network Structure
@@ -49,3 +48,5 @@ Use `gensim` package to pre-train my data.
 School of Computer Science and Technology, University of Science and Technology of China
 
 Email: chinawolfman@hotmail.com
+
+My Blog: [randolph.pro](http://randolph.pro)
