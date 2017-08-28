@@ -1,4 +1,4 @@
-## CNN for Chinese Text Classification in Tensorflow
+# CNN for Chinese Text Classification in Tensorflow
 
 This project is used by my bachelor graduation project, and it is also a study of TensorFlow, familiar with CNN, RNN and other neural networks.
 
