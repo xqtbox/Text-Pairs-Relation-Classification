@@ -45,8 +45,10 @@ Use `gensim` package to pre-train my data.
 
 黄威，Randolph
 
-School of Computer Science and Technology, University of Science and Technology of China
+SCU SE Bachelor; USTC CS Master
 
 Email: chinawolfman@hotmail.com
 
 My Blog: [randolph.pro](http://randolph.pro)
+
+LinkedIn: [randolph's linkedin](https://www.linkedin.com/in/randolph-%E9%BB%84%E5%A8%81/)
