@@ -1,5 +1,3 @@
-# -*- coding:utf-8 -*-
-#
 # Randolph's Package
 #
 # Copyright (C) 2015-2017 Randolph
@@ -13,7 +11,13 @@ import linecache
 import chardet
 import codecs
 import pip
+
 from subprocess import call
+from math import log
+from collections import defaultdict, Counter
+from functools import reduce
+from itertools import islice
+from six import text_type
 
 
 def upgrade_package():
@@ -97,7 +101,7 @@ def remove_file_in_first_dir(target_dir):
 
 class Text(object):
     """
-    This class brings together a variety of functions for
+    This module brings together a variety of functions for
     text analysis, and provides simple, interactive interfaces.
     """
     def __init__(self, filename):
@@ -120,28 +124,34 @@ class Text(object):
                 count += buffer.decode('utf-8').count('\n')
         return count
 
-    @property
-    def tokens(self):
+    def tokens(self, keep_punctuation=None):
         """Return the word tokens of the file content."""
+        if keep_punctuation is None:
+            regex = '\W+'
+        else:
+            regex = '(\W+)'
         with open(self.filename, 'r') as fin:
             tokens = []
             for eachline in fin:
-                line = re.split(r'(\.|;|,|!|\?|\s)\s*', eachline)
+                line = re.split(regex, eachline)
                 for item in line:
-                    if item != ' ':
+                    if item != ' ' and item != '.\n':
                         tokens.append(item)
         return tokens
 
-    @property
-    def sentence_tokens(self):
+    def sentence_tokens(self, keep_punctuation=None):
         """Return the sentence tokens of the file content."""
+        if keep_punctuation is None:
+            regex = '\W+'
+        else:
+            regex = '(\W+)'
         with open(self.filename, 'r') as fin:
             sentence_tokens = []
             for eachline in fin:
                 line = []
-                eachline = re.split(r'(\.|;|,|!|\?|\s)\s*', eachline)
+                eachline = re.split(regex, eachline)
                 for item in eachline:
-                    if item != ' ' and item != '\n':
+                    if item != ' ' and item != '.\n':
                         line.append(item)
                 sentence_tokens.append(line)
         return sentence_tokens
@@ -156,6 +166,7 @@ class Text(object):
         string = linecache.getline(self.filename, n)
         return string
 
+    # 根据某列(index)内容排序, index 表示需要根据哪一列内容进行排序
     def sort(self, index):
         """
         Sort the file content according to the 'index' row to a new file.
@@ -193,7 +204,7 @@ class Text(object):
         half_width = (width - len(word) - 2) // 2
         context = width // 4  # approx number of words of context
 
-        tokens = self.tokens
+        tokens = self.tokens(True)
         offsets = []
         for index, item in enumerate(tokens):
             if item == word:
