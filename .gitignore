@@ -98,3 +98,6 @@ target/
 ### IPythonNotebook ###
 # Temporary data
 .ipynb_checkpoints/
+
+### Else ###
+Icon?
