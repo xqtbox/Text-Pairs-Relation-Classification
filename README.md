@@ -1,8 +1,8 @@
-# CNN for Chinese Text Classification in Tensorflow
+# Convolutional Neural Networks for Sentence Pairs Similarity Modeling
 
 This project is used by my bachelor graduation project, and it is also a study of TensorFlow, familiar with CNN, RNN and other neural networks.
 
-The main objective of the project is to determine whether the two sentences are similar in sentence meaning (binary classification problems) by the two given sentences. 
+The main objective of the project is to determine whether the two sentences are similar in sentence meaning (binary classification problems) by the two given sentences.
 
 The project refer to [dennybritz/cnn-text-classification-tf](https://github.com/dennybritz/cnn-text-classification-tf), make the data helper supports Chinese language (Task required) and modified the network structure (Based on my task).
 
@@ -30,10 +30,11 @@ Use `gensim` package to pre-train my data.
 
 ## Innovation
 
-1. Make the data support Chinese and English.(Which use `gensim` seems easy)
-2. Can use your own pre-trained word vectors.
-3. Deign two subnetworks to meet the task requirements.
-4. Add a new Highway Layer.
+1. Make the data support **Chinese** and English.(Which use `gensim` seems easy)
+2. Can use **your own pre-trained word vectors**.
+3. Deign **two subnetworks** to meet the task requirements.
+4. Add a new **Highway Layer**.
+5. Add **AUC** Performance Measure since the data is imbalanced.
 
 
 ## References
