@@ -1,4 +1,4 @@
-# Convolutional Neural Networks for Sentence Pairs Classification
+# Convolutional Neural Networks for Text Pairs Classification
 
 This project is used by my bachelor graduation project, and it is also a study of TensorFlow, familiar with CNN, RNN and other neural networks.
 
