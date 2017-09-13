@@ -4,6 +4,7 @@ import os
 import multiprocessing
 import numpy as np
 import gensim
+import logging
 import matplotlib.pyplot as plt
 import matplotlib.patheffects as PathEffects
 
@@ -13,6 +14,8 @@ from gensim.models import word2vec
 from gensim.corpora import Dictionary
 from tflearn.data_utils import to_categorical, pad_sequences
 from sklearn.manifold import TSNE
+
+logging.getLogger().setLevel(logging.INFO)
 
 mpl.rcParams['font.sans-serif'] = ['FangSong']  # 指定默认字体
 mpl.rcParams['axes.unicode_minus'] = False  # 解决保存图像是负号'-'显示为方块的问题
@@ -120,20 +123,21 @@ def load_data_and_labels(data_file, MAX_SEQUENCE_LENGTH, EMBEDDING_SIZE):
     """
     # Load vocabulary dict file
     vocab_dict = create_vocab(TEXT_DIR)
+
     # Load word2vec file
     word2vec_train(EMBEDDING_SIZE, TEXT_DIR, WORD2VEC_DIR)
 
     # Load data from files and split by words
     data = data_word2vec(input_file=data_file, dictionary=vocab_dict)
     max_seq_len = max(max_seq_len_cal(data.front_tokenindex), max_seq_len_cal(data.behind_tokenindex))
-    print('Found %s texts.' % data.number)
-    print('Max sequence length is:', max_seq_len)
+    logging.info('Found %s texts.' % data.number)
+    logging.info('Max sequence length is:', max_seq_len)
     data_front = pad_sequences(data.front_tokenindex, maxlen=MAX_SEQUENCE_LENGTH, value=0.)
     data_behind = pad_sequences(data.behind_tokenindex, maxlen=MAX_SEQUENCE_LENGTH, value=0.)
     labels = to_categorical(data.labels, nb_classes=2)
-    print('Shape of data front tensor:', data_front.shape)
-    print('Shape of data behind tensor:', data_behind.shape)
-    print('Shape of label tensor:', labels.shape)
+    logging.info('Shape of data front tensor:', data_front.shape)
+    logging.info('Shape of data behind tensor:', data_behind.shape)
+    logging.info('Shape of label tensor:', labels.shape)
     return data_front, data_behind, labels
 
 

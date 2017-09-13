@@ -3,18 +3,26 @@
 import os
 import time
 import datetime
+import logging
 import tensorflow as tf
 import data_helpers
 import model_exports
 from text_cnn import TextCNN
+from tensorflow.contrib import learn
+
+logging.getLogger().setLevel(logging.INFO)
 
 # Parameters
-# ==================================================
 
 FLAGS = tf.flags.FLAGS
 BASE_DIR = os.getcwd()
 
-SUBSET = '1'  # 需要训练和测试的子集
+SUBSET = input("☛ Please input the subset number you want to train: ")  # 需要训练和测试的子集
+
+while not (SUBSET.isdigit() and int(SUBSET) in range(1, 12)):
+    SUBSET = input('✘ The format of your input is illegal(should be the integer), please re-input: ')
+logging.info('✔︎ The format of your input is legal, now loading to next step...')
+
 TRAININGSET_DIR = BASE_DIR + '/Model Training' + '/Model' + SUBSET + '_Training.txt'
 VALIDATIONSET_DIR = BASE_DIR + '/Model Validation' + '/Model' + SUBSET + '_Validation.txt'
 TESTSET_DIR = BASE_DIR + '/Model Test' + '/Model' + SUBSET + '_Test.txt'
@@ -53,29 +61,25 @@ tf.flags.DEFINE_string("output_graph_name", "output_graph.pb", "Graph output fil
 tf.flags.DEFINE_string("output_node", "output/predictions", "The output node of the graph")
 
 
-def main():
-    # Data Preparation
-    # ==================================================
+def train_cnn():
+    """Training CNN model."""
 
-    # Load data
-    print('Loading data...')
+    # Load sentences, labels, and training parameters
+    logging.info('✔︎ Loading data...')
 
-    print('Training data processing...')
+    logging.info('✔︎ Training data processing...')
     x_train_front, x_train_behind, y_train = \
         data_helpers.load_data_and_labels(FLAGS.training_data_file, FLAGS.MAX_SEQUENCE_LENGTH, FLAGS.embedding_dim)
 
-    print('Validation data processing...')
+    logging.info('✔︎ Validation data processing...')
     x_validation_front, x_validation_behind, y_validation = \
         data_helpers.load_data_and_labels(FLAGS.validation_data_file, FLAGS.MAX_SEQUENCE_LENGTH, FLAGS.embedding_dim)
 
-    # print('Test data processing...')
-    # x_test_front, x_test_behind, y_test = \
-    # 	data_helpers.load_data_and_labels(FLAGS.test_data_file, FLAGS.MAX_SEQUENCE_LENGTH, FLAGS.embedding_dim)
-
+    # Build vocabulary
     vocab_size = data_helpers.load_vocab_size()
     pretrained_word2vec_matrix = data_helpers.load_word2vec_matrix(vocab_size, FLAGS.embedding_dim)
 
-    # Training
+    # Build a graph and cnn object
     with tf.Graph().as_default():
         session_conf = tf.ConfigProto(
             allow_soft_placement=FLAGS.allow_soft_placement,
@@ -112,7 +116,7 @@ def main():
             # Output directory for models and summaries
             timestamp = str(int(time.time()))
             out_dir = os.path.abspath(os.path.join(os.path.curdir, "runs", timestamp))
-            print("Writing to {}\n".format(out_dir))
+            logging.info("✔︎ Writing to {}\n".format(out_dir))
 
             # Summaries for loss and accuracy
             loss_summary = tf.summary.scalar("loss", cnn.loss)
@@ -147,10 +151,11 @@ def main():
                     cnn.input_y: y_batch,
                     cnn.dropout_keep_prob: FLAGS.dropout_keep_prob
                 }
-                _, step, summaries, loss, accuracy = sess.run(
+                _, step, summaries, loss, accuracy= sess.run(
                     [train_op, global_step, train_summary_op, cnn.loss, cnn.accuracy], feed_dict)
                 time_str = datetime.datetime.now().isoformat()
-                print("{}: step {}, loss {:g}, acc {:g}".format(time_str, step, loss, accuracy))
+                logging.critical("{}: step {}, loss {:g}, acc {:g}"
+                      .format(time_str, step, loss, accuracy))
                 train_summary_writer.add_summary(summaries, step)
 
             def validation_step(x_batch_front, x_batch_behind, y_batch, writer=None):
@@ -165,7 +170,7 @@ def main():
                     [global_step, validation_summary_op, cnn.scores, cnn.predictions,
                      cnn.topKPreds, cnn.loss, cnn.accuracy, cnn.AUC], feed_dict)
                 time_str = datetime.datetime.now().isoformat()
-                print("{}: step {}, loss {:g}, acc {:g}, AUC {}"
+                logging.critical("{}: step {}, loss {:g}, acc {:g}, AUC {}"
                       .format(time_str, step, loss, accuracy, auc))
                 if writer:
                     writer.add_summary(summaries, step)
@@ -179,24 +184,26 @@ def main():
                 train_step(x_batch_front, x_batch_behind, y_batch)
                 current_step = tf.train.global_step(sess, global_step)
                 if current_step % FLAGS.evaluate_every == 0:
-                    print("\nEvaluation:")
+                    logging.info("\nEvaluation:")
                     validation_step(x_validation_front, x_validation_behind, y_validation,
                                     writer=validation_summary_writer)
-                    print("")
+                    logging.info("")
                 if current_step % FLAGS.checkpoint_every == 0:
                     path = saver.save(sess, checkpoint_prefix, global_step=current_step)
-                    print("Saved model checkpoint to {}\n".format(path))
+                    logging.critical("✔︎ Saved model checkpoint to {}\n".format(path))
 
             # Saving graph
-            print("Saving graph...")
+            logging.critical("✔︎ Saving graph...")
             tf.train.write_graph(sess.graph, checkpoint_dir, FLAGS.input_graph_name)
 
             # exporting graph and model
-            print("Freezing model...")
+            logging.critical("✔︎ Freezing model...")
             input_graph_path = os.path.join(checkpoint_dir, FLAGS.input_graph_name)
             output_graph_path = os.path.join(checkpoint_dir, FLAGS.output_graph_name)
             model_exports.freeze_model(input_graph_path, output_graph_path, FLAGS.output_node, path)
 
+    logging.info("✔︎ Done.")
+
 
 if __name__ == '__main__':
-    main()
+    train_cnn()

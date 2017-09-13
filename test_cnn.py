@@ -1,12 +1,22 @@
 # -*- coding:utf-8 -*-
 
 import os
+import logging
 import numpy as np
 import tensorflow as tf
 import data_helpers
 
-MODEL_LOG = '1490175368'
-SUBSET = '11'
+logging.getLogger().setLevel(logging.INFO)
+
+
+user_input = input("☛ Please input the subset and the model file you want to test, it should be like(11, 1490175368): ")
+SUBSET = user_input.split(',')[0]
+MODEL_LOG = user_input.split(',')[1][1:]
+
+while not (SUBSET.isdigit() and int(SUBSET) in range(1, 12) and MODEL_LOG.isdigit() and len(MODEL_LOG) == 10):
+    SUBSET = input('✘ The format of your input is illegal, it should be like(11, 1490175368), please re-input: ')
+logging.info('✔︎ The format of your input is legal, now loading to next step...')
+
 SAVE_FILE = 'result' + SUBSET + '.txt'
 
 BASE_DIR = os.getcwd()
@@ -14,6 +24,8 @@ VALIDATIONSET_DIR = BASE_DIR + '/Model Validation' + '/Model' + SUBSET + '_Valid
 TESTSET_DIR = BASE_DIR + '/Model Test' + '/Model' + SUBSET + '_Test.txt'
 MODEL_DIR = BASE_DIR + '/runs/' + MODEL_LOG + '/checkpoints/'
 MODEL_FILE = BASE_DIR + '/runs/' + MODEL_LOG + '/checkpoints/output_graph.pb'
+
+FLAGS = tf.flags.FLAGS
 
 # Data loading params
 tf.flags.DEFINE_string("validation_data_file", VALIDATIONSET_DIR, "Data source for the validation data")
@@ -45,82 +57,88 @@ tf.flags.DEFINE_string("input_graph_name", "input_graph.pb", "Graph input file o
 tf.flags.DEFINE_string("output_graph_name", "output_graph.pb", "Graph output file of the graph to export")
 tf.flags.DEFINE_string("output_node", "output/predictions", "The output node of the graph")
 
-FLAGS = tf.flags.FLAGS
-FLAGS._parse_flags()
 
-# Data Preparation
-# ==================================================
+def test_cnn():
+    """Test CNN model."""
 
-# Load data
-print("Loading data...")
-x_test_front, x_test_behind, y_test = \
-    data_helpers.load_data_and_labels(FLAGS.validation_data_file, FLAGS.MAX_SEQUENCE_LENGTH, FLAGS.embedding_dim)
+    # Load data
+    logging.info("✔ Loading data...")
+    x_test_front, x_test_behind, y_test = \
+        data_helpers.load_data_and_labels(FLAGS.validation_data_file, FLAGS.MAX_SEQUENCE_LENGTH, FLAGS.embedding_dim)
 
-vocab_size = data_helpers.load_vocab_size()
-pretrained_word2vec_matrix = data_helpers.load_word2vec_matrix(vocab_size, FLAGS.embedding_dim)
+    vocab_size = data_helpers.load_vocab_size()
+    pretrained_word2vec_matrix = data_helpers.load_word2vec_matrix(vocab_size, FLAGS.embedding_dim)
 
-checkpoint_file = tf.train.latest_checkpoint(FLAGS.checkpoint_dir)
-print(checkpoint_file)
+    logging.info("✔ Loading model...")
+    checkpoint_file = tf.train.latest_checkpoint(FLAGS.checkpoint_dir)
+    logging.info(checkpoint_file)
 
-graph = tf.Graph()
-with graph.as_default():
-    session_conf = tf.ConfigProto(
-        allow_soft_placement=FLAGS.allow_soft_placement,
-        log_device_placement=FLAGS.log_device_placement)
-    session_conf.gpu_options.allow_growth = FLAGS.gpu_options_allow_growth
-    sess = tf.Session(config=session_conf)
-    with sess.as_default():
-        # Load the saved meta graph and restore variables
-        saver = tf.train.import_meta_graph("{}.meta".format(checkpoint_file))
-        saver.restore(sess, checkpoint_file)
+    graph = tf.Graph()
+    with graph.as_default():
+        session_conf = tf.ConfigProto(
+            allow_soft_placement=FLAGS.allow_soft_placement,
+            log_device_placement=FLAGS.log_device_placement)
+        session_conf.gpu_options.allow_growth = FLAGS.gpu_options_allow_growth
+        sess = tf.Session(config=session_conf)
+        with sess.as_default():
+            # Load the saved meta graph and restore variables
+            saver = tf.train.import_meta_graph("{}.meta".format(checkpoint_file))
+            saver.restore(sess, checkpoint_file)
 
-        # Get the placeholders from the graph by name
-        input_x_front = graph.get_operation_by_name("input_x_front").outputs[0]
-        input_x_behind = graph.get_operation_by_name("input_x_behind").outputs[0]
+            # Get the placeholders from the graph by name
+            input_x_front = graph.get_operation_by_name("input_x_front").outputs[0]
+            input_x_behind = graph.get_operation_by_name("input_x_behind").outputs[0]
 
-        # input_y = graph.get_operation_by_name("input_y").outputs[0]
-        dropout_keep_prob = graph.get_operation_by_name("dropout_keep_prob").outputs[0]
+            # input_y = graph.get_operation_by_name("input_y").outputs[0]
+            dropout_keep_prob = graph.get_operation_by_name("dropout_keep_prob").outputs[0]
 
-        # pre-trained_word2vec
-        pretrained_embedding = graph.get_operation_by_name("embedding/W").outputs[0]
+            # pre-trained_word2vec
+            pretrained_embedding = graph.get_operation_by_name("embedding/W").outputs[0]
 
-        # Tensors we want to evaluate
-        scores = graph.get_operation_by_name("output/scores").outputs
-        predictions = graph.get_operation_by_name("output/predictions").outputs[0]
-        softmaxScores = graph.get_operation_by_name("output/softmaxScores").outputs[0]
-        sigmoidScores = graph.get_operation_by_name("output/sigmoidScores").outputs[0]
-        topKPreds = graph.get_operation_by_name("output/topKPreds").outputs[0]
+            # Tensors we want to evaluate
+            scores = graph.get_operation_by_name("output/scores").outputs
+            predictions = graph.get_operation_by_name("output/predictions").outputs[0]
+            softmaxScores = graph.get_operation_by_name("output/softmaxScores").outputs[0]
+            sigmoidScores = graph.get_operation_by_name("output/sigmoidScores").outputs[0]
+            topKPreds = graph.get_operation_by_name("output/topKPreds").outputs[0]
 
-        # Generate batches for one epoch
-        batches = data_helpers.batch_iter(list(zip(x_test_front, x_test_behind)), FLAGS.batch_size, 1, shuffle=False)
+            # Generate batches for one epoch
+            batches = data_helpers.batch_iter(list(zip(x_test_front, x_test_behind)), FLAGS.batch_size, 1,
+                                              shuffle=False)
 
-        # Collect the predictions here
-        all_scores = []
-        all_softMaxScores = []
-        all_sigmoidScores = []
-        all_predictions = []
-        all_topKPreds = []
+            # Collect the predictions here
+            all_scores = []
+            all_softMaxScores = []
+            all_sigmoidScores = []
+            all_predictions = []
+            all_topKPreds = []
 
-        for x_test_batch in batches:
-            x_batch_front, x_batch_behind = zip(*x_test_batch)
-            feed_dict = {
-                input_x_front: x_batch_front,
-                input_x_behind: x_batch_behind,
-                dropout_keep_prob: 1.0
-            }
-            batch_scores = sess.run(scores, feed_dict)
-            all_scores = np.append(all_scores, batch_scores)
+            for x_test_batch in batches:
+                x_batch_front, x_batch_behind = zip(*x_test_batch)
+                feed_dict = {
+                    input_x_front: x_batch_front,
+                    input_x_behind: x_batch_behind,
+                    dropout_keep_prob: 1.0
+                }
+                batch_scores = sess.run(scores, feed_dict)
+                all_scores = np.append(all_scores, batch_scores)
 
-            batch_softMax_scores = sess.run(softmaxScores, feed_dict)
-            all_softMaxScores = np.append(all_softMaxScores, batch_softMax_scores)
+                batch_softMax_scores = sess.run(softmaxScores, feed_dict)
+                all_softMaxScores = np.append(all_softMaxScores, batch_softMax_scores)
 
-            batch_sigmoid_Scores = sess.run(sigmoidScores, feed_dict)
-            all_sigmoidScores = np.append(all_sigmoidScores, batch_sigmoid_Scores)
+                batch_sigmoid_Scores = sess.run(sigmoidScores, feed_dict)
+                all_sigmoidScores = np.append(all_sigmoidScores, batch_sigmoid_Scores)
 
-            batch_predictions = sess.run(predictions, feed_dict)
-            all_predictions = np.concatenate([all_predictions, batch_predictions])
+                batch_predictions = sess.run(predictions, feed_dict)
+                all_predictions = np.concatenate([all_predictions, batch_predictions])
 
-            batch_topKPreds = sess.run(topKPreds, feed_dict)
-            all_topKPreds = np.append(all_topKPreds, batch_topKPreds)
+                batch_topKPreds = sess.run(topKPreds, feed_dict)
+                all_topKPreds = np.append(all_topKPreds, batch_topKPreds)
 
-        np.savetxt(SAVE_FILE, list(zip(all_predictions, all_topKPreds)), fmt='%s')
+            np.savetxt(SAVE_FILE, list(zip(all_predictions, all_topKPreds)), fmt='%s')
+
+    logging.info("✔ Done.")
+
+
+if __name__ == '__main__':
+    test_cnn()

@@ -16,9 +16,9 @@ def linear(input_, output_size, scope=None):
 
     shape = input_.get_shape().as_list()
     if len(shape) != 2:
-        raise ValueError("Linear is expecting 2D arguments: %s" % str(shape))
+        raise ValueError("Linear is expecting 2D arguments: %s".format(str(shape)))
     if not shape[1]:
-        raise ValueError("Linear expects shape[1] of arguments: %s" % str(shape))
+        raise ValueError("Linear expects shape[1] of arguments: %s".format(str(shape)))
     input_size = shape[1]
 
     # Now the computation.
@@ -39,8 +39,8 @@ def highway(input_, size, num_layers=1, bias=-2.0, f=tf.nn.relu, scope='Highway'
 
     with tf.variable_scope(scope):
         for idx in range(num_layers):
-            g = f(linear(input_, size, scope='highway_lin_%d' % idx))
-            t = tf.sigmoid(linear(input_, size, scope='highway_gate_%d' % idx) + bias)
+            g = f(linear(input_, size, scope='highway_lin_%d'.format(idx)))
+            t = tf.sigmoid(linear(input_, size, scope='highway_gate_%d'.format(idx)) + bias)
             output = t * g + (1. - t) * input_
             input_ = output
 
@@ -88,7 +88,7 @@ class TextCNN(object):
         pooled_outputs_behind = []
 
         for i, filter_size in enumerate(filter_sizes):
-            with tf.name_scope("conv-maxpool-%s" % filter_size):
+            with tf.name_scope("conv-maxpool-%s".format(filter_size)):
                 # Convolution Layer
                 filter_shape = [filter_size, embedding_size, 1, num_filters]
                 W = tf.Variable(tf.truncated_normal(filter_shape, stddev=0.1), name="W")
