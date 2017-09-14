@@ -8,12 +8,10 @@ import tensorflow as tf
 import data_helpers
 import model_exports
 from text_cnn import TextCNN
-from tensorflow.contrib import learn
 
 logging.getLogger().setLevel(logging.INFO)
 
 # Parameters
-
 FLAGS = tf.flags.FLAGS
 BASE_DIR = os.getcwd()
 
@@ -31,10 +29,6 @@ TESTSET_DIR = BASE_DIR + '/Model Test' + '/Model' + SUBSET + '_Test.txt'
 tf.flags.DEFINE_string("training_data_file", TRAININGSET_DIR, "Data source for the training data.")
 tf.flags.DEFINE_string("validation_data_file", VALIDATIONSET_DIR, "Data source for the validation data.")
 tf.flags.DEFINE_string("test_data_file", TESTSET_DIR, "Data source for the test data.")
-
-# Data parameters
-tf.flags.DEFINE_string("MAX_SEQUENCE_LENGTH", 450, "每个文本的最长选取长度(padding的统一长度),较短的文本可以设短些.")
-tf.flags.DEFINE_string("MAX_NB_WORDS", 10000, "整体词库字典中，词的多少，可以略微调大或调小.")
 
 # Model Hyperparameterss
 tf.flags.DEFINE_integer("embedding_dim", 300, "Dimensionality of character embedding (default: 128)")
@@ -68,16 +62,27 @@ def train_cnn():
     logging.info('✔︎ Loading data...')
 
     logging.info('✔︎ Training data processing...')
-    x_train_front, x_train_behind, y_train = \
-        data_helpers.load_data_and_labels(FLAGS.training_data_file, FLAGS.MAX_SEQUENCE_LENGTH, FLAGS.embedding_dim)
+    train_data, train_data_max_seq_len = \
+        data_helpers.load_data_and_labels(FLAGS.training_data_file, FLAGS.embedding_dim)
 
     logging.info('✔︎ Validation data processing...')
+    validation_data, validation_data_max_seq_len = \
+        data_helpers.load_data_and_labels(FLAGS.validation_data_file, FLAGS.embedding_dim)
+
+    MAX_SEQUENCE_LENGTH = max(train_data_max_seq_len, validation_data_max_seq_len)
+    logging.info('Max sequence length is: {}'.format(MAX_SEQUENCE_LENGTH))
+
+    logging.info('✔︎ Training data padding...')
+    x_train_front, x_train_behind, y_train = \
+        data_helpers.pad_data(train_data, MAX_SEQUENCE_LENGTH)
+
+    logging.info('✔︎ Validation data padding...')
     x_validation_front, x_validation_behind, y_validation = \
-        data_helpers.load_data_and_labels(FLAGS.validation_data_file, FLAGS.MAX_SEQUENCE_LENGTH, FLAGS.embedding_dim)
+        data_helpers.pad_data(validation_data, MAX_SEQUENCE_LENGTH)
 
     # Build vocabulary
-    vocab_size = data_helpers.load_vocab_size()
-    pretrained_word2vec_matrix = data_helpers.load_word2vec_matrix(vocab_size, FLAGS.embedding_dim)
+    VOCAB_SIZE = data_helpers.load_vocab_size(FLAGS.embedding_dim)
+    pretrained_word2vec_matrix = data_helpers.load_word2vec_matrix(VOCAB_SIZE, FLAGS.embedding_dim)
 
     # Build a graph and cnn object
     with tf.Graph().as_default():
@@ -88,9 +93,9 @@ def train_cnn():
         sess = tf.Session(config=session_conf)
         with sess.as_default():
             cnn = TextCNN(
-                sequence_length=FLAGS.MAX_SEQUENCE_LENGTH,
+                sequence_length=MAX_SEQUENCE_LENGTH,
                 num_classes=y_train.shape[1],
-                vocab_size=vocab_size,
+                vocab_size=VOCAB_SIZE,
                 embedding_size=FLAGS.embedding_dim,
                 filter_sizes=list(map(int, FLAGS.filter_sizes.split(","))),
                 num_filters=FLAGS.num_filters,

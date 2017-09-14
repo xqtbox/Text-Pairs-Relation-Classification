@@ -16,9 +16,9 @@ def linear(input_, output_size, scope=None):
 
     shape = input_.get_shape().as_list()
     if len(shape) != 2:
-        raise ValueError("Linear is expecting 2D arguments: %s".format(str(shape)))
+        raise ValueError("Linear is expecting 2D arguments: {}".format(str(shape)))
     if not shape[1]:
-        raise ValueError("Linear expects shape[1] of arguments: %s".format(str(shape)))
+        raise ValueError("Linear expects shape[1] of arguments: {}".format(str(shape)))
     input_size = shape[1]
 
     # Now the computation.
@@ -39,8 +39,8 @@ def highway(input_, size, num_layers=1, bias=-2.0, f=tf.nn.relu, scope='Highway'
 
     with tf.variable_scope(scope):
         for idx in range(num_layers):
-            g = f(linear(input_, size, scope='highway_lin_%d'.format(idx)))
-            t = tf.sigmoid(linear(input_, size, scope='highway_gate_%d'.format(idx)) + bias)
+            g = f(linear(input_, size, scope='highway_lin_{}'.format(idx)))
+            t = tf.sigmoid(linear(input_, size, scope='highway_gate_{}'.format(idx)) + bias)
             output = t * g + (1. - t) * input_
             input_ = output
 
@@ -70,7 +70,7 @@ class TextCNN(object):
 
         # Embedding layer
         with tf.device('/cpu:0'), tf.name_scope("embedding"):
-            # 原采用的是随机生成正态分布的词向量。
+            # 原默认采用的是随机生成正态分布的词向量。
             # Vector 是通过自己的语料库训练而得到的词向量。
             # input_x_front 和 input_x_behind 共用词向量。
             if pretrained_embedding is None:
@@ -88,7 +88,7 @@ class TextCNN(object):
         pooled_outputs_behind = []
 
         for i, filter_size in enumerate(filter_sizes):
-            with tf.name_scope("conv-maxpool-%s".format(filter_size)):
+            with tf.name_scope("conv-maxpool-{}".format(filter_size)):
                 # Convolution Layer
                 filter_shape = [filter_size, embedding_size, 1, num_filters]
                 W = tf.Variable(tf.truncated_normal(filter_shape, stddev=0.1), name="W")

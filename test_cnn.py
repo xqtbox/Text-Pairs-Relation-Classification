@@ -32,10 +32,6 @@ tf.flags.DEFINE_string("validation_data_file", VALIDATIONSET_DIR, "Data source f
 tf.flags.DEFINE_string("test_data_file", TESTSET_DIR, "Data source for the test data")
 tf.flags.DEFINE_string("checkpoint_dir", MODEL_DIR, "Checkpoint directory from training run")
 
-# Data parameters
-tf.flags.DEFINE_string("MAX_SEQUENCE_LENGTH", 550, "每个文本的最长选取长度(padding的统一长度),较短的文本可以设短些.")
-tf.flags.DEFINE_string("MAX_NB_WORDS", 10000, "整体词库字典中，词的多少，可以略微调大或调小.")
-
 # Model Hyperparameters
 tf.flags.DEFINE_integer("embedding_dim", 300, "Dimensionality of character embedding (default: 128)")
 tf.flags.DEFINE_string("filter_sizes", "3,4,5", "Comma-separated filter sizes (default: '3,4,5')")
@@ -63,12 +59,23 @@ def test_cnn():
 
     # Load data
     logging.info("✔ Loading data...")
+
+    logging.info('✔︎ Test data processing...')
+    test_data, test_data_max_seq_len = \
+        data_helpers.load_data_and_labels(FLAGS.test_data_file, FLAGS.embedding_dim)
+
+    MAX_SEQUENCE_LENGTH = test_data_max_seq_len
+    logging.info('Max sequence length is: {}'.format(MAX_SEQUENCE_LENGTH))
+
+    logging.info('✔︎ Test data padding...')
     x_test_front, x_test_behind, y_test = \
-        data_helpers.load_data_and_labels(FLAGS.validation_data_file, FLAGS.MAX_SEQUENCE_LENGTH, FLAGS.embedding_dim)
+        data_helpers.pad_data(test_data, MAX_SEQUENCE_LENGTH)
 
-    vocab_size = data_helpers.load_vocab_size()
-    pretrained_word2vec_matrix = data_helpers.load_word2vec_matrix(vocab_size, FLAGS.embedding_dim)
+    # Build vocabulary
+    VOCAB_SIZE = data_helpers.load_vocab_size(FLAGS.embedding_dim)
+    pretrained_word2vec_matrix = data_helpers.load_word2vec_matrix(VOCAB_SIZE, FLAGS.embedding_dim)
 
+    # Load cnn model
     logging.info("✔ Loading model...")
     checkpoint_file = tf.train.latest_checkpoint(FLAGS.checkpoint_dir)
     logging.info(checkpoint_file)
