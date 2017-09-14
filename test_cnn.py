@@ -20,6 +20,7 @@ logging.info('✔︎ The format of your input is legal, now loading to next step
 SAVE_FILE = 'result' + SUBSET + '.txt'
 
 BASE_DIR = os.getcwd()
+TRAININGSET_DIR = BASE_DIR + '/Model Training' + '/Model' + SUBSET + '_Training.txt'
 VALIDATIONSET_DIR = BASE_DIR + '/Model Validation' + '/Model' + SUBSET + '_Validation.txt'
 TESTSET_DIR = BASE_DIR + '/Model Test' + '/Model' + SUBSET + '_Test.txt'
 MODEL_DIR = BASE_DIR + '/runs/' + MODEL_LOG + '/checkpoints/'
@@ -28,6 +29,7 @@ MODEL_FILE = BASE_DIR + '/runs/' + MODEL_LOG + '/checkpoints/output_graph.pb'
 FLAGS = tf.flags.FLAGS
 
 # Data loading params
+tf.flags.DEFINE_string("training_data_file", TRAININGSET_DIR, "Data source for the training data.")
 tf.flags.DEFINE_string("validation_data_file", VALIDATIONSET_DIR, "Data source for the validation data")
 tf.flags.DEFINE_string("test_data_file", TESTSET_DIR, "Data source for the test data")
 tf.flags.DEFINE_string("checkpoint_dir", MODEL_DIR, "Checkpoint directory from training run")
@@ -60,12 +62,20 @@ def test_cnn():
     # Load data
     logging.info("✔ Loading data...")
 
+    train_data, train_data_max_seq_len = \
+        data_helpers.load_data_and_labels(FLAGS.training_data_file, FLAGS.embedding_dim)
+
+    validation_data, validation_data_max_seq_len = \
+        data_helpers.load_data_and_labels(FLAGS.validation_data_file, FLAGS.embedding_dim)
+
+    MAX_SEQUENCE_LENGTH = max(train_data_max_seq_len, validation_data_max_seq_len)
+    logging.info('Max sequence length is: {}'.format(MAX_SEQUENCE_LENGTH))
+
     logging.info('✔︎ Test data processing...')
     test_data, test_data_max_seq_len = \
         data_helpers.load_data_and_labels(FLAGS.test_data_file, FLAGS.embedding_dim)
 
-    MAX_SEQUENCE_LENGTH = test_data_max_seq_len
-    logging.info('Max sequence length is: {}'.format(MAX_SEQUENCE_LENGTH))
+    logging.info('Max sequence length of Test data is: {}'.format(test_data_max_seq_len))
 
     logging.info('✔︎ Test data padding...')
     x_test_front, x_test_behind, y_test = \
