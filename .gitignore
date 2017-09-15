@@ -101,3 +101,11 @@ target/
 
 ### Else ###
 Icon?
+*.txt
+*.model
+Tag-Merge
+Total-Merge
+Data Analysis.md
+temp.py
+build_content.py
+build_pairs.py
