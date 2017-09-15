@@ -6,7 +6,6 @@ import datetime
 import logging
 import tensorflow as tf
 import data_helpers
-import model_exports
 from text_cnn import TextCNN
 
 logging.getLogger().setLevel(logging.INFO)
@@ -47,14 +46,9 @@ tf.flags.DEFINE_integer("checkpoint_every", 100, "Save model after this many ste
 tf.flags.DEFINE_integer("num_checkpoints", 5, "Number of checkpoints to store (default: 5)")
 
 # Misc Parameters
-tf.flags.DEFINE_boolean("allow_soft_placement", True, "Allow device Model1/train_cnn.py:39soft device placement")
+tf.flags.DEFINE_boolean("allow_soft_placement", True, "Allow device soft device placement")
 tf.flags.DEFINE_boolean("log_device_placement", False, "Log placement of ops on devices")
 tf.flags.DEFINE_boolean("gpu_options_allow_growth", True, "Allow gpu options growth")
-
-# Model export parameters
-tf.flags.DEFINE_string("input_graph_name", "input_graph.pb", "Graph input file of the graph to export")
-tf.flags.DEFINE_string("output_graph_name", "output_graph.pb", "Graph output file of the graph to export")
-tf.flags.DEFINE_string("output_node", "output/predictions", "The output node of the graph")
 
 
 def train_cnn():
@@ -198,16 +192,6 @@ def train_cnn():
                 if current_step % FLAGS.checkpoint_every == 0:
                     path = saver.save(sess, checkpoint_prefix, global_step=current_step)
                     logging.critical("✔︎ Saved model checkpoint to {}\n".format(path))
-
-            # Saving graph
-            logging.critical("✔︎ Saving graph...")
-            tf.train.write_graph(sess.graph, checkpoint_dir, FLAGS.input_graph_name)
-
-            # exporting graph and model
-            logging.critical("✔︎ Freezing model...")
-            input_graph_path = os.path.join(checkpoint_dir, FLAGS.input_graph_name)
-            output_graph_path = os.path.join(checkpoint_dir, FLAGS.output_graph_name)
-            model_exports.freeze_model(input_graph_path, output_graph_path, FLAGS.output_node, path)
 
     logging.info("✔︎ Done.")
 

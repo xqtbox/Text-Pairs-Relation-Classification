@@ -24,7 +24,6 @@ TRAININGSET_DIR = BASE_DIR + '/Model Training' + '/Model' + SUBSET + '_Training.
 VALIDATIONSET_DIR = BASE_DIR + '/Model Validation' + '/Model' + SUBSET + '_Validation.txt'
 TESTSET_DIR = BASE_DIR + '/Model Test' + '/Model' + SUBSET + '_Test.txt'
 MODEL_DIR = BASE_DIR + '/runs/' + MODEL_LOG + '/checkpoints/'
-MODEL_FILE = BASE_DIR + '/runs/' + MODEL_LOG + '/checkpoints/output_graph.pb'
 
 FLAGS = tf.flags.FLAGS
 
