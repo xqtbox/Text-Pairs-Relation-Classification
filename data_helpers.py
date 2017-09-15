@@ -24,6 +24,11 @@ TEXT_DIR = BASE_DIR + '/content.txt'
 
 
 def create_word2vec_model(embedding_size, input_file=TEXT_DIR):
+    """
+    Create the word2vec model based on the given embedding size and the corpus file.
+    :param embedding_size: The embedding size
+    :param input_file: The corpus file
+    """
     word2vec_file = BASE_DIR + '/word2vec_' + str(embedding_size) + '.model'
 
     if os.path.isfile(word2vec_file):
@@ -37,6 +42,11 @@ def create_word2vec_model(embedding_size, input_file=TEXT_DIR):
 
 
 def load_vocab_size(embedding_size):
+    """
+    Return the vocab size of the word2vec file.
+    :param embedding_size: The embedding size
+    :return: The vocab size of the word2vec file
+    """
     word2vec_file = BASE_DIR + '/word2vec_' + str(embedding_size) + '.model'
 
     if os.path.isfile(word2vec_file):
@@ -48,6 +58,13 @@ def load_vocab_size(embedding_size):
 
 
 def data_word2vec(input_file, word2vec_model):
+    """
+    Create the research data tokenindex based on the word2vec model file.
+    Returns the class Data(includes the data tokenindex and data labels).
+    :param input_file: The research data
+    :param word2vec_model: The word2vec model file
+    :return: The class Data(includes the data tokenindex and data labels)
+    """
     vocab = dict([(k, v.index) for (k, v) in word2vec_model.wv.vocab.items()])
 
     def token_to_index(content):
@@ -110,6 +127,12 @@ def data_word2vec(input_file, word2vec_model):
 
 
 def load_word2vec_matrix(vocab_size, embedding_size):
+    """
+    Return the word2vec model matrix.
+    :param vocab_size: The vocab size of the word2vec model file
+    :param embedding_size: The embedding size
+    :return: The word2vec model matrix
+    """
     word2vec_file = BASE_DIR + '/word2vec_' + str(embedding_size) + '.model'
 
     if os.path.isfile(word2vec_file):
@@ -128,7 +151,10 @@ def load_word2vec_matrix(vocab_size, embedding_size):
 def load_data_and_labels(data_file, embedding_size):
     """
     Loads research data from files, splits the data into words and generates labels.
-    Returns split sentences and labels.
+    Returns split sentences, labels and the max sentence length of the research data.
+    :param data_file: The research data
+    :param embedding_size: The embedding size
+    :returns: The class data and the max sentence length of the research data
     """
     word2vec_file = BASE_DIR + '/word2vec_' + str(embedding_size) + '.model'
 
@@ -148,6 +174,13 @@ def load_data_and_labels(data_file, embedding_size):
 
 
 def pad_data(data, max_seq_len):
+    """
+    Padding each sentence of research data according to the max sentence length.
+    Returns the padded data and data labels.
+    :param data: The research data
+    :param max_seq_len: The max sentence length of research data
+    :returns: The padded data and data labels
+    """
     data_front = pad_sequences(data.front_tokenindex, maxlen=max_seq_len, value=0.)
     data_behind = pad_sequences(data.behind_tokenindex, maxlen=max_seq_len, value=0.)
     labels = to_categorical(data.labels, nb_classes=2)
@@ -155,6 +188,10 @@ def pad_data(data, max_seq_len):
 
 
 def plot_word2vec(word2vec_file):
+    """
+    Visualizing the data info of the word2vec model based on t-SNE.
+    :param word2vec_file: The word2vec model file
+    """
     model = gensim.models.Word2Vec.load(word2vec_file)
     data_x = []
     data_y = []
@@ -197,7 +234,6 @@ def batch_iter(data, batch_size, num_epochs, shuffle=True):
     :param batch_size: The size of the data batch
     :param num_epochs: The number of epoches
     :param shuffle: Shuffle or not
-    :return:
     """
     data = np.array(data)
     data_size = len(data)
