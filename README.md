@@ -1,6 +1,6 @@
 # Convolutional Neural Networks for Text Pairs Classification
 
-This project is used by my bachelor graduation project, and it is also a study of TensorFlow, familiar with CNN, RNN and other neural networks.
+This project is used by my bachelor graduation project, and it is also a study of TensorFlow, Deep Learning(CNN, RNN, LSTM, etc.).
 
 The main objective of the project is to determine whether the two sentences are similar in sentence meaning (binary classification problems) by the two given sentences.
 
