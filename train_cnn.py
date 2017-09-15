@@ -12,6 +12,8 @@ from text_cnn import TextCNN
 logging.getLogger().setLevel(logging.INFO)
 
 # Parameters
+# ==================================================
+
 FLAGS = tf.flags.FLAGS
 BASE_DIR = os.getcwd()
 
