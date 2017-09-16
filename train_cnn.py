@@ -22,9 +22,9 @@ while not (SUBSET.isdigit() and int(SUBSET) in range(1, 12)):
     SUBSET = input('✘ The format of your input is illegal(should be the integer), please re-input: ')
 logging.info('✔︎ The format of your input is legal, now loading to next step...')
 
-TRAININGSET_DIR = BASE_DIR + '/Model Training' + '/Model' + SUBSET + '_Training.txt'
-VALIDATIONSET_DIR = BASE_DIR + '/Model Validation' + '/Model' + SUBSET + '_Validation.txt'
-TESTSET_DIR = BASE_DIR + '/Model Test' + '/Model' + SUBSET + '_Test.txt'
+TRAININGSET_DIR = BASE_DIR + '/Model Training' + '/Model' + SUBSET + '_Training.json'
+VALIDATIONSET_DIR = BASE_DIR + '/Model Validation' + '/Model' + SUBSET + '_Validation.json'
+TESTSET_DIR = BASE_DIR + '/Model Test' + '/Model' + SUBSET + '_Test.json'
 
 # Data loading params
 tf.flags.DEFINE_string("training_data_file", TRAININGSET_DIR, "Data source for the training data.")

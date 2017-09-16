@@ -71,60 +71,48 @@ def data_word2vec(input_file, word2vec_model):
     def token_to_index(content):
         result = []
         for item in content:
-            if item != '<end>' and (len(item) > 0):
-                id = vocab.get(item)
-                if id is None:
-                    id = 0
-                result.append(id)
+            id = vocab.get(item)
+            if id is None:
+                id = 0
+            result.append(id)
         return result
 
-    with open(input_file) as fin:
-        labels = []
-        front_content_indexlist = []
-        behind_content_indexlist = []
-        for index, eachline in enumerate(fin):
-            front_content = []
-            behind_content = []
-            line = eachline.strip().split('\t')
-            label = line[2]
-            content = line[3].strip().split(' ')
+    if input_file.endswith('.json'):
+        with open(input_file) as fin:
+            labels = []
+            front_content_indexlist = []
+            behind_content_indexlist = []
+            for index, eachline in enumerate(fin):
+                data = json.loads(eachline)
+                labels.append(data.labels)
+                front_content_indexlist.append(token_to_index(data.front_features))
+                behind_content_indexlist.append(token_to_index(data.behind_features))
+            total_line = index + 1
 
-            end_tag = False
-            for item in content:
-                if item == '<end>':
-                    end_tag = True
-                if not end_tag:
-                    front_content.append(item)
-                if end_tag:
-                    behind_content.append(item)
+        class Data:
+            def __init__(self):
+                pass
 
-            labels.append(label)
+            @property
+            def number(self):
+                return total_line
 
-            front_content_indexlist.append(token_to_index(front_content))
-            behind_content_indexlist.append(token_to_index(behind_content[1:]))
-        total_line = index + 1
+            @property
+            def labels(self):
+                return labels
 
-    class Data:
-        def __init__(self):
-            pass
+            @property
+            def front_tokenindex(self):
+                return front_content_indexlist
 
-        @property
-        def number(self):
-            return total_line
+            @property
+            def behind_tokenindex(self):
+                return behind_content_indexlist
 
-        @property
-        def labels(self):
-            return labels
-
-        @property
-        def front_tokenindex(self):
-            return front_content_indexlist
-
-        @property
-        def behind_tokenindex(self):
-            return behind_content_indexlist
-
-    return Data()
+        return Data()
+    else:
+        logging.info('✘ The research data is not a json file. '
+                     'Please preprocess the research data into the json file.')
 
 
 def load_word2vec_matrix(vocab_size, embedding_size):
