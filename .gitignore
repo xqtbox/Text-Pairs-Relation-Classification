@@ -112,3 +112,4 @@ build_pairs.py
 model_exports.py
 freeze_graph.py
 *.png
+*.json
