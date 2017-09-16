@@ -84,7 +84,7 @@ def data_word2vec(input_file, word2vec_model):
             behind_content_indexlist = []
             for index, eachline in enumerate(fin):
                 data = json.loads(eachline)
-                labels.append(data.labels)
+                labels.append(data.label)
                 front_content_indexlist.append(token_to_index(data.front_features))
                 behind_content_indexlist.append(token_to_index(data.behind_features))
             total_line = index + 1
