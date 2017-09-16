@@ -32,7 +32,9 @@ tf.flags.DEFINE_string("validation_data_file", VALIDATIONSET_DIR, "Data source f
 tf.flags.DEFINE_string("test_data_file", TESTSET_DIR, "Data source for the test data.")
 
 # Model Hyperparameterss
+tf.flags.DEFINE_integer("pad_seq_len", 120, "Recommand padding Sequence length of data (depends on the data)")
 tf.flags.DEFINE_integer("embedding_dim", 300, "Dimensionality of character embedding (default: 128)")
+tf.flags.DEFINE_integer("embedding_type", 1, "The embedding type (default: 1)")
 tf.flags.DEFINE_string("filter_sizes", "3,4,5", "Comma-separated filter sizes (default: '3,4,5')")
 tf.flags.DEFINE_integer("num_filters", 128, "Number of filters per filter size (default: 128)")
 tf.flags.DEFINE_float("dropout_keep_prob", 0.5, "Dropout keep probability (default: 0.5)")
@@ -58,23 +60,22 @@ def train_cnn():
     logging.info('✔︎ Loading data...')
 
     logging.info('✔︎ Training data processing...')
-    train_data, train_data_max_seq_len = \
+    train_data = \
         data_helpers.load_data_and_labels(FLAGS.training_data_file, FLAGS.embedding_dim)
 
     logging.info('✔︎ Validation data processing...')
-    validation_data, validation_data_max_seq_len = \
+    validation_data = \
         data_helpers.load_data_and_labels(FLAGS.validation_data_file, FLAGS.embedding_dim)
 
-    MAX_SEQUENCE_LENGTH = max(train_data_max_seq_len, validation_data_max_seq_len)
-    logging.info('Max sequence length is: {}'.format(MAX_SEQUENCE_LENGTH))
+    logging.info('Recommand padding Sequence length is: {}'.format(FLAGS.pad_seq_len))
 
     logging.info('✔︎ Training data padding...')
     x_train_front, x_train_behind, y_train = \
-        data_helpers.pad_data(train_data, MAX_SEQUENCE_LENGTH)
+        data_helpers.pad_data(train_data, FLAGS.pad_seq_len)
 
     logging.info('✔︎ Validation data padding...')
     x_validation_front, x_validation_behind, y_validation = \
-        data_helpers.pad_data(validation_data, MAX_SEQUENCE_LENGTH)
+        data_helpers.pad_data(validation_data, FLAGS.pad_seq_len)
 
     # Build vocabulary
     VOCAB_SIZE = data_helpers.load_vocab_size(FLAGS.embedding_dim)
@@ -89,10 +90,11 @@ def train_cnn():
         sess = tf.Session(config=session_conf)
         with sess.as_default():
             cnn = TextCNN(
-                sequence_length=MAX_SEQUENCE_LENGTH,
+                sequence_length=FLAGS.pad_seq_len,
                 num_classes=y_train.shape[1],
                 vocab_size=VOCAB_SIZE,
                 embedding_size=FLAGS.embedding_dim,
+                embedding_type=FLAGS.embedding_type,
                 filter_sizes=list(map(int, FLAGS.filter_sizes.split(","))),
                 num_filters=FLAGS.num_filters,
                 l2_reg_lambda=FLAGS.l2_reg_lambda,
@@ -152,11 +154,11 @@ def train_cnn():
                     cnn.input_y: y_batch,
                     cnn.dropout_keep_prob: FLAGS.dropout_keep_prob
                 }
-                _, step, summaries, loss, accuracy= sess.run(
+                _, step, summaries, loss, accuracy = sess.run(
                     [train_op, global_step, train_summary_op, cnn.loss, cnn.accuracy], feed_dict)
                 time_str = datetime.datetime.now().isoformat()
                 logging.critical("{}: step {}, loss {:g}, acc {:g}"
-                      .format(time_str, step, loss, accuracy))
+                                 .format(time_str, step, loss, accuracy))
                 train_summary_writer.add_summary(summaries, step)
 
             def validation_step(x_batch_front, x_batch_behind, y_batch, writer=None):
@@ -167,12 +169,15 @@ def train_cnn():
                     cnn.input_y: y_batch,
                     cnn.dropout_keep_prob: 1.0
                 }
-                step, summaries, scores, predictions, topKPreds, loss, accuracy, auc = sess.run(
-                    [global_step, validation_summary_op, cnn.scores, cnn.predictions,
-                     cnn.topKPreds, cnn.loss, cnn.accuracy, cnn.AUC], feed_dict)
+                step, summaries, scores, predictions, num_correct, \
+                loss, accuracy, recall, precision, f1, auc, topKPreds, = sess.run(
+                    [global_step, validation_summary_op, cnn.scores, cnn.predictions, cnn.num_correct,
+                     cnn.loss, cnn.accuracy, cnn.recall, cnn.precision, cnn.F1, cnn.AUC, cnn.topKPreds], feed_dict)
                 time_str = datetime.datetime.now().isoformat()
-                logging.critical("{}: step {}, loss {:g}, acc {:g}, AUC {}"
-                      .format(time_str, step, loss, accuracy, auc))
+                logging.critical("{}: step {}, loss {:g}, acc {:g}, "
+                                 "recall {:g}, precision {:g}, f1 {:g}, AUC {}"
+                                 .format(time_str, step, loss, accuracy,
+                                         recall, precision, f1, auc))
                 if writer:
                     writer.add_summary(summaries, step)
 

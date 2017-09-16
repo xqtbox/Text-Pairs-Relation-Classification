@@ -54,8 +54,8 @@ class TextCNN(object):
     """
 
     def __init__(
-            self, sequence_length, num_classes, vocab_size,
-            embedding_size, filter_sizes, num_filters, l2_reg_lambda=0.0, pretrained_embedding=None):
+            self, sequence_length, num_classes, vocab_size, embedding_size,
+            embedding_type, filter_sizes, num_filters, l2_reg_lambda=0.0, pretrained_embedding=None):
 
         # Placeholders for input, output and dropout
         self.input_x_front = tf.placeholder(tf.int32, [None, sequence_length], name="input_x_front")
@@ -76,8 +76,12 @@ class TextCNN(object):
             if pretrained_embedding is None:
                 self.W = tf.Variable(tf.random_uniform([vocab_size, embedding_size], -1.0, 1.0), name="W")
             else:
-                self.W = tf.Variable(pretrained_embedding, name="W", trainable=True)
-                self.W = tf.cast(self.W, tf.float32)
+                if embedding_type == 0:
+                    self.W = tf.constant(pretrained_embedding, name="W")
+                    self.W = tf.cast(self.W, tf.float32)
+                if embedding_type == 1:
+                    self.W = tf.Variable(pretrained_embedding, name="W", trainable=True)
+                    self.W = tf.cast(self.W, tf.float32)
             self.embedded_chars_front = tf.nn.embedding_lookup(self.W, self.input_x_front)
             self.embedded_chars_behind = tf.nn.embedding_lookup(self.W, self.input_x_behind)
             self.embedded_chars_expanded_front = tf.expand_dims(self.embedded_chars_front, -1)
@@ -162,7 +166,7 @@ class TextCNN(object):
 
         # CalculateMean cross-entropy loss
         with tf.name_scope("loss"):
-            losses = tf.nn.softmax_cross_entropy_with_logits(logits=self.scores, labels=self.input_y)
+            losses = tf.nn.softmax_cross_entropy_with_logits(labels=self.input_y, logits=self.scores)
             self.loss = tf.reduce_mean(losses) + l2_reg_lambda * l2_loss
 
         # Accuracy
@@ -170,6 +174,33 @@ class TextCNN(object):
             correct_predictions = tf.equal(self.predictions, tf.argmax(self.input_y, 1))
             self.accuracy = tf.reduce_mean(tf.cast(correct_predictions, "float"), name="accuracy")
 
+        # Number of correct predictions
+        with tf.name_scope("num_correct"):
+            correct = tf.equal(self.predictions, tf.argmax(self.input_y, 1))
+            self.num_correct = tf.reduce_sum(tf.cast(correct, "float"), name="num_correct")
+
+        # Number of Fp
+        with tf.name_scope("fp"):
+            fp = tf.metrics.false_positives(labels=tf.argmax(self.input_y, 1), predictions=self.predictions)
+            self.fp = tf.reduce_sum(tf.cast(fp, "float"), name="fp")
+
+        # Number of Fn
+        with tf.name_scope("fn"):
+            fn = tf.metrics.false_negatives(labels=tf.argmax(self.input_y, 1), predictions=self.predictions)
+            self.fn = tf.reduce_sum(tf.cast(fn, "float"), name="fn")
+
+        # Recall
+        with tf.name_scope("recall"):
+            self.recall = self.num_correct / (self.num_correct + self.fn)
+
+        # Precision
+        with tf.name_scope("precision"):
+            self.precision = self.num_correct / (self.num_correct + self.fp)
+
+        # F1
+        with tf.name_scope("F1"):
+            self.F1 = (2 * self.precision * self.recall) / (self.precision + self.recall)
+
         # AUC
         with tf.name_scope("AUC"):
-            self.AUC = tf.contrib.metrics.streaming_auc(self.softmaxScores, self.input_y)
+            self.AUC = tf.contrib.metrics.streaming_auc(self.softmaxScores, self.input_y, name="AUC")
