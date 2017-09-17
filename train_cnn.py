@@ -174,7 +174,7 @@ def train_cnn():
                     [global_step, validation_summary_op, cnn.scores, cnn.predictions, cnn.num_correct,
                      cnn.loss, cnn.accuracy, cnn.recall, cnn.precision, cnn.F1, cnn.AUC, cnn.topKPreds], feed_dict)
                 time_str = datetime.datetime.now().isoformat()
-                logging.critical("{}: step {}, loss {:g}, acc {:g}, "
+                logging.critical("{}: step {}, loss {:g}, acc {:g},"
                                  "recall {:g}, precision {:g}, f1 {:g}, AUC {}"
                                  .format(time_str, step, loss, accuracy,
                                          recall, precision, f1, auc))
