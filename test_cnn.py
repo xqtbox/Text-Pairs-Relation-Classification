@@ -23,8 +23,6 @@ VALIDATIONSET_DIR = 'Model Validation' + '/Model' + SUBSET + '_Validation.json'
 TESTSET_DIR = 'Model Test' + '/Model' + SUBSET + '_Test.json'
 MODEL_DIR = 'runs/' + MODEL_LOG + '/checkpoints/'
 
-FLAGS = tf.flags.FLAGS
-
 # Data loading params
 tf.flags.DEFINE_string("training_data_file", TRAININGSET_DIR, "Data source for the training data.")
 tf.flags.DEFINE_string("validation_data_file", VALIDATIONSET_DIR, "Data source for the validation data")
@@ -32,7 +30,9 @@ tf.flags.DEFINE_string("test_data_file", TESTSET_DIR, "Data source for the test 
 tf.flags.DEFINE_string("checkpoint_dir", MODEL_DIR, "Checkpoint directory from training run")
 
 # Model Hyperparameters
+tf.flags.DEFINE_integer("pad_seq_len", 120, "Recommand padding Sequence length of data (depends on the data)")
 tf.flags.DEFINE_integer("embedding_dim", 300, "Dimensionality of character embedding (default: 128)")
+tf.flags.DEFINE_integer("embedding_type", 1, "The embedding type (default: 1)")
 tf.flags.DEFINE_string("filter_sizes", "3,4,5", "Comma-separated filter sizes (default: '3,4,5')")
 tf.flags.DEFINE_integer("num_filters", 128, "Number of filters per filter size (default: 128)")
 tf.flags.DEFINE_float("dropout_keep_prob", 0.5, "Dropout keep probability (default: 0.5)")
@@ -59,24 +59,17 @@ def test_cnn():
     # Load data
     logger.info("✔ Loading data...")
 
-    train_data, train_data_max_seq_len = \
-        data_helpers.load_data_and_labels(FLAGS.training_data_file, FLAGS.embedding_dim)
-
-    validation_data, validation_data_max_seq_len = \
-        data_helpers.load_data_and_labels(FLAGS.validation_data_file, FLAGS.embedding_dim)
-
-    MAX_SEQUENCE_LENGTH = max(train_data_max_seq_len, validation_data_max_seq_len)
-    logger.info('Max sequence length is: {}'.format(MAX_SEQUENCE_LENGTH))
+    logger.info('Recommand padding Sequence length is: {}'.format(FLAGS.pad_seq_len))
 
     logger.info('✔︎ Test data processing...')
-    test_data, test_data_max_seq_len = \
+
+    test_data = \
         data_helpers.load_data_and_labels(FLAGS.test_data_file, FLAGS.embedding_dim)
 
-    logger.info('Max sequence length of Test data is: {}'.format(test_data_max_seq_len))
-
     logger.info('✔︎ Test data padding...')
+
     x_test_front, x_test_behind, y_test = \
-        data_helpers.pad_data(test_data, MAX_SEQUENCE_LENGTH)
+        data_helpers.pad_data(test_data, FLAGS.pad_seq_len)
 
     # Build vocabulary
     VOCAB_SIZE = data_helpers.load_vocab_size(FLAGS.embedding_dim)
@@ -113,7 +106,6 @@ def test_cnn():
             scores = graph.get_operation_by_name("output/scores").outputs
             predictions = graph.get_operation_by_name("output/predictions").outputs[0]
             softmaxScores = graph.get_operation_by_name("output/softmaxScores").outputs[0]
-            sigmoidScores = graph.get_operation_by_name("output/sigmoidScores").outputs[0]
             topKPreds = graph.get_operation_by_name("output/topKPreds").outputs[0]
 
             # Generate batches for one epoch
@@ -123,7 +115,6 @@ def test_cnn():
             # Collect the predictions here
             all_scores = []
             all_softMaxScores = []
-            all_sigmoidScores = []
             all_predictions = []
             all_topKPreds = []
 
@@ -137,11 +128,8 @@ def test_cnn():
                 batch_scores = sess.run(scores, feed_dict)
                 all_scores = np.append(all_scores, batch_scores)
 
-                batch_softMax_scores = sess.run(softmaxScores, feed_dict)
-                all_softMaxScores = np.append(all_softMaxScores, batch_softMax_scores)
-
-                batch_sigmoid_Scores = sess.run(sigmoidScores, feed_dict)
-                all_sigmoidScores = np.append(all_sigmoidScores, batch_sigmoid_Scores)
+                batch_softmax_scores = sess.run(softmaxScores, feed_dict)
+                all_softMaxScores = np.append(all_softMaxScores, batch_softmax_scores)
 
                 batch_predictions = sess.run(predictions, feed_dict)
                 all_predictions = np.concatenate([all_predictions, batch_predictions])

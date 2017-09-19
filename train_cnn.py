@@ -196,7 +196,6 @@ def train_cnn():
                     logger.info("\nEvaluation:")
                     validation_step(x_validation_front, x_validation_behind, y_validation,
                                     writer=validation_summary_writer)
-                    logger.info("")
                 if current_step % FLAGS.checkpoint_every == 0:
                     path = saver.save(sess, checkpoint_prefix, global_step=current_step)
                     logger.info("✔︎ Saved model checkpoint to {}\n".format(path))
