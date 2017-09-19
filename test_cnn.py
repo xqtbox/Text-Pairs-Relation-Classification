@@ -1,13 +1,12 @@
 # -*- coding:utf-8 -*-
 
 import os
-import logging
+import time
 import numpy as np
 import tensorflow as tf
 import data_helpers
 
-logging.getLogger().setLevel(logging.INFO)
-
+logger = data_helpers.logger_fn('tflog', 'test-{}.log'.format(time.asctime()))
 
 user_input = input("☛ Please input the subset and the model file you want to test, it should be like(11, 1490175368): ")
 SUBSET = user_input.split(',')[0]
@@ -15,15 +14,14 @@ MODEL_LOG = user_input.split(',')[1][1:]
 
 while not (SUBSET.isdigit() and int(SUBSET) in range(1, 12) and MODEL_LOG.isdigit() and len(MODEL_LOG) == 10):
     SUBSET = input('✘ The format of your input is illegal, it should be like(11, 1490175368), please re-input: ')
-logging.info('✔︎ The format of your input is legal, now loading to next step...')
+logger.info('✔︎ The format of your input is legal, now loading to next step...')
 
 SAVE_FILE = 'result' + SUBSET + '.txt'
 
-BASE_DIR = os.getcwd()
-TRAININGSET_DIR = BASE_DIR + '/Model Training' + '/Model' + SUBSET + '_Training.txt'
-VALIDATIONSET_DIR = BASE_DIR + '/Model Validation' + '/Model' + SUBSET + '_Validation.txt'
-TESTSET_DIR = BASE_DIR + '/Model Test' + '/Model' + SUBSET + '_Test.txt'
-MODEL_DIR = BASE_DIR + '/runs/' + MODEL_LOG + '/checkpoints/'
+TRAININGSET_DIR = 'Model Training' + '/Model' + SUBSET + '_Training.json'
+VALIDATIONSET_DIR = 'Model Validation' + '/Model' + SUBSET + '_Validation.json'
+TESTSET_DIR = 'Model Test' + '/Model' + SUBSET + '_Test.json'
+MODEL_DIR = 'runs/' + MODEL_LOG + '/checkpoints/'
 
 FLAGS = tf.flags.FLAGS
 
@@ -42,24 +40,24 @@ tf.flags.DEFINE_float("l2_reg_lambda", 0.0, "L2 regularization lambda (default: 
 
 # Training parameters
 tf.flags.DEFINE_integer("batch_size", 64, "Batch Size (default: 64)")
-tf.flags.DEFINE_integer("num_epochs", 10, "Number of training epochs (default: 200)")
 
 # Misc Parameters
 tf.flags.DEFINE_boolean("allow_soft_placement", True, "Allow device soft device placement")
 tf.flags.DEFINE_boolean("log_device_placement", False, "Log placement of ops on devices")
 tf.flags.DEFINE_boolean("gpu_options_allow_growth", True, "Allow gpu options growth")
 
-# Model export parameters
-tf.flags.DEFINE_string("input_graph_name", "input_graph.pb", "Graph input file of the graph to export")
-tf.flags.DEFINE_string("output_graph_name", "output_graph.pb", "Graph output file of the graph to export")
-tf.flags.DEFINE_string("output_node", "output/predictions", "The output node of the graph")
+FLAGS = tf.flags.FLAGS
+FLAGS._parse_flags()
+dilim = '-' * 100
+logger.info('\n'.join([dilim, *['{:>50}|{:<50}'.format(attr.upper(), value)
+                                for attr, value in sorted(FLAGS.__flags.items())], dilim]))
 
 
 def test_cnn():
     """Test CNN model."""
 
     # Load data
-    logging.info("✔ Loading data...")
+    logger.info("✔ Loading data...")
 
     train_data, train_data_max_seq_len = \
         data_helpers.load_data_and_labels(FLAGS.training_data_file, FLAGS.embedding_dim)
@@ -68,15 +66,15 @@ def test_cnn():
         data_helpers.load_data_and_labels(FLAGS.validation_data_file, FLAGS.embedding_dim)
 
     MAX_SEQUENCE_LENGTH = max(train_data_max_seq_len, validation_data_max_seq_len)
-    logging.info('Max sequence length is: {}'.format(MAX_SEQUENCE_LENGTH))
+    logger.info('Max sequence length is: {}'.format(MAX_SEQUENCE_LENGTH))
 
-    logging.info('✔︎ Test data processing...')
+    logger.info('✔︎ Test data processing...')
     test_data, test_data_max_seq_len = \
         data_helpers.load_data_and_labels(FLAGS.test_data_file, FLAGS.embedding_dim)
 
-    logging.info('Max sequence length of Test data is: {}'.format(test_data_max_seq_len))
+    logger.info('Max sequence length of Test data is: {}'.format(test_data_max_seq_len))
 
-    logging.info('✔︎ Test data padding...')
+    logger.info('✔︎ Test data padding...')
     x_test_front, x_test_behind, y_test = \
         data_helpers.pad_data(test_data, MAX_SEQUENCE_LENGTH)
 
@@ -85,9 +83,9 @@ def test_cnn():
     pretrained_word2vec_matrix = data_helpers.load_word2vec_matrix(VOCAB_SIZE, FLAGS.embedding_dim)
 
     # Load cnn model
-    logging.info("✔ Loading model...")
+    logger.info("✔ Loading model...")
     checkpoint_file = tf.train.latest_checkpoint(FLAGS.checkpoint_dir)
-    logging.info(checkpoint_file)
+    logger.info(checkpoint_file)
 
     graph = tf.Graph()
     with graph.as_default():
@@ -153,7 +151,7 @@ def test_cnn():
 
             np.savetxt(SAVE_FILE, list(zip(all_predictions, all_topKPreds)), fmt='%s')
 
-    logging.info("✔ Done.")
+    logger.info("✔ Done.")
 
 
 if __name__ == '__main__':
