@@ -62,22 +62,18 @@ def train_cnn():
     logger.info('✔︎ Loading data...')
 
     logger.info('✔︎ Training data processing...')
-    train_data = \
-        data_helpers.load_data_and_labels(FLAGS.training_data_file, FLAGS.embedding_dim)
+    train_data = data_helpers.load_data_and_labels(FLAGS.training_data_file, FLAGS.embedding_dim)
 
     logger.info('✔︎ Validation data processing...')
-    validation_data = \
-        data_helpers.load_data_and_labels(FLAGS.validation_data_file, FLAGS.embedding_dim)
+    validation_data = data_helpers.load_data_and_labels(FLAGS.validation_data_file, FLAGS.embedding_dim)
 
     logger.info('Recommand padding Sequence length is: {}'.format(FLAGS.pad_seq_len))
 
     logger.info('✔︎ Training data padding...')
-    x_train_front, x_train_behind, y_train = \
-        data_helpers.pad_data(train_data, FLAGS.pad_seq_len)
+    x_train_front, x_train_behind, y_train = data_helpers.pad_data(train_data, FLAGS.pad_seq_len)
 
     logger.info('✔︎ Validation data padding...')
-    x_validation_front, x_validation_behind, y_validation = \
-        data_helpers.pad_data(validation_data, FLAGS.pad_seq_len)
+    x_validation_front, x_validation_behind, y_validation = data_helpers.pad_data(validation_data, FLAGS.pad_seq_len)
 
     # Build vocabulary
     VOCAB_SIZE = data_helpers.load_vocab_size(FLAGS.embedding_dim)

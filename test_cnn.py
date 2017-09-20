@@ -63,13 +63,11 @@ def test_cnn():
 
     logger.info('✔︎ Test data processing...')
 
-    test_data = \
-        data_helpers.load_data_and_labels(FLAGS.test_data_file, FLAGS.embedding_dim)
+    test_data = data_helpers.load_data_and_labels(FLAGS.test_data_file, FLAGS.embedding_dim)
 
     logger.info('✔︎ Test data padding...')
 
-    x_test_front, x_test_behind, y_test = \
-        data_helpers.pad_data(test_data, FLAGS.pad_seq_len)
+    x_test_front, x_test_behind, y_test = data_helpers.pad_data(test_data, FLAGS.pad_seq_len)
 
     # Build vocabulary
     VOCAB_SIZE = data_helpers.load_vocab_size(FLAGS.embedding_dim)
