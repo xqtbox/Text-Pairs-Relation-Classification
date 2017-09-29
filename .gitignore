@@ -114,3 +114,5 @@ freeze_graph.py
 temp.py
 *.png
 *.json
+*.jpg
+*.graffle
