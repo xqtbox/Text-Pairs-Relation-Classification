@@ -35,6 +35,8 @@ Use `gensim` package to pre-train my data.
 3. Deign **two subnetworks** to meet the task requirements.
 4. Add a new **Highway Layer**.
 5. Add **AUC** Performance Measure since the data is imbalanced.
+6. Can choose **train** the model directly or **restore** the model from checkpoint.  
+7. Add **model test code**. 
 
 
 ## References
