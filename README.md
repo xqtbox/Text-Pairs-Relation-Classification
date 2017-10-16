@@ -23,7 +23,6 @@ Research data may attract copyright protection under China law. Thus, there is o
 
 Use `gensim` package to pre-train my data.
 
-
 ## Network Structure
 
 ![](https://farm1.staticflickr.com/650/33049175050_080d4de7ff_o.jpg)
@@ -37,7 +36,6 @@ Use `gensim` package to pre-train my data.
 5. Add **AUC** Performance Measure since the data is imbalanced.
 6. Can choose **train** the model directly or **restore** the model from checkpoint.  
 7. Add **model test code**. 
-
 
 ## References
 
