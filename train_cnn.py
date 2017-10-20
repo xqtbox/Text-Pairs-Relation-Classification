@@ -3,20 +3,32 @@
 import os
 import time
 import datetime
+import logging
 import tensorflow as tf
 import data_helpers
 from text_cnn import TextCNN
 
-logger = data_helpers.logger_fn('tflog', 'training-{}.log'.format(time.asctime()))
-
 # Parameters
 # ==================================================
 
-SUBSET = input("☛ Please input the subset number you want to train: ")  # 需要训练和测试的子集
+TRAIN_OR_RESTORE = input("☛ Train or Restore?(T/R) \n")
+
+while not (TRAIN_OR_RESTORE.isalpha() and TRAIN_OR_RESTORE.upper() in ['T', 'R']):
+    TRAIN_OR_RESTORE = input('✘ The format of your input is illegal, please re-input: ')
+logging.info('✔︎ The format of your input is legal, now loading to next step...')
+
+TRAIN_OR_RESTORE = TRAIN_OR_RESTORE.upper()
+
+SUBSET = input("☛ Please input the subset number you want to train or restore: ")  # The Subset you want to train & test
 
 while not (SUBSET.isdigit() and int(SUBSET) in range(1, 12)):
     SUBSET = input('✘ The format of your input is illegal(should be the integer), please re-input: ')
-logger.info('✔︎ The format of your input is legal, now loading to next step...')
+logging.info('✔︎ The format of your input is legal, now loading to next step...')
+
+if TRAIN_OR_RESTORE == 'T':
+    logger = data_helpers.logger_fn('tflog', 'training-{}.log'.format(time.asctime()))
+if TRAIN_OR_RESTORE == 'R':
+    logger = data_helpers.logger_fn('tflog', 'restore-{}.log'.format(time.asctime()))
 
 TRAININGSET_DIR = 'Model Training' + '/Model' + SUBSET + '_Training.json'
 VALIDATIONSET_DIR = 'Model Validation' + '/Model' + SUBSET + '_Validation.json'
@@ -26,11 +38,14 @@ TESTSET_DIR = 'Model Test' + '/Model' + SUBSET + '_Test.json'
 tf.flags.DEFINE_string("training_data_file", TRAININGSET_DIR, "Data source for the training data.")
 tf.flags.DEFINE_string("validation_data_file", VALIDATIONSET_DIR, "Data source for the validation data.")
 tf.flags.DEFINE_string("test_data_file", TESTSET_DIR, "Data source for the test data.")
+tf.flags.DEFINE_string("train_or_restore", TRAIN_OR_RESTORE, "Train or Restore.")
 
 # Model Hyperparameterss
+tf.flags.DEFINE_float("learning_rate", 0.001, "The learning rate (default: 0.001)")
 tf.flags.DEFINE_integer("pad_seq_len", 120, "Recommand padding Sequence length of data (depends on the data)")
 tf.flags.DEFINE_integer("embedding_dim", 300, "Dimensionality of character embedding (default: 128)")
 tf.flags.DEFINE_integer("embedding_type", 1, "The embedding type (default: 1)")
+tf.flags.DEFINE_integer("fc_hidden_size", 1024, "Hidden size for fully connected layer (default: 1024)")
 tf.flags.DEFINE_string("filter_sizes", "3,4,5", "Comma-separated filter sizes (default: '3,4,5')")
 tf.flags.DEFINE_integer("num_filters", 128, "Number of filters per filter size (default: 128)")
 tf.flags.DEFINE_float("dropout_keep_prob", 0.5, "Dropout keep probability (default: 0.5)")
@@ -39,8 +54,10 @@ tf.flags.DEFINE_float("l2_reg_lambda", 0.0, "L2 regularization lambda (default: 
 # Training parameters
 tf.flags.DEFINE_integer("batch_size", 64, "Batch Size (default: 64)")
 tf.flags.DEFINE_integer("num_epochs", 200, "Number of training epochs (default: 200)")
-tf.flags.DEFINE_integer("evaluate_every", 100, "Evaluate model on dev set after this many steps (default: 100)")
-tf.flags.DEFINE_integer("checkpoint_every", 100, "Save model after this many steps (default: 100)")
+tf.flags.DEFINE_integer("evaluate_every", 2000, "Evaluate model on dev set after this many steps (default: 100)")
+tf.flags.DEFINE_integer("decay_steps", 5000, "how many steps before decay learning rate.")
+tf.flags.DEFINE_float("decay_rate", 0.5, "Rate of decay for learning rate.")
+tf.flags.DEFINE_integer("checkpoint_every", 500, "Save model after this many steps (default: 100)")
 tf.flags.DEFINE_integer("num_checkpoints", 5, "Number of checkpoints to store (default: 5)")
 
 # Misc Parameters
@@ -91,6 +108,7 @@ def train_cnn():
                 sequence_length=FLAGS.pad_seq_len,
                 num_classes=y_train.shape[1],
                 vocab_size=VOCAB_SIZE,
+                fc_hidden_size=FLAGS.fc_hidden_size,
                 embedding_size=FLAGS.embedding_dim,
                 embedding_type=FLAGS.embedding_type,
                 filter_sizes=list(map(int, FLAGS.filter_sizes.split(","))),
@@ -99,10 +117,12 @@ def train_cnn():
                 pretrained_embedding=pretrained_word2vec_matrix)
 
             # Define Training procedure
-            global_step = tf.Variable(0, name="global_step", trainable=False)
-            optimizer = tf.train.AdamOptimizer(1e-3)
+            # learning_rate = tf.train.exponential_decay(learning_rate=FLAGS.learning_rate, global_step=cnn.global_step,
+            #                                            decay_steps=FLAGS.decay_steps, decay_rate=FLAGS.decay_rate,
+            #                                            staircase=True)
+            optimizer = tf.train.AdamOptimizer(FLAGS.learning_rate)
             grads_and_vars = optimizer.compute_gradients(cnn.loss)
-            train_op = optimizer.apply_gradients(grads_and_vars, global_step=global_step, name="train_op")
+            train_op = optimizer.apply_gradients(grads_and_vars, global_step=cnn.global_step, name="train_op")
 
             # Keep track of gradient values and sparsity (optional)
             grad_summaries = []
@@ -115,9 +135,22 @@ def train_cnn():
             grad_summaries_merged = tf.summary.merge(grad_summaries)
 
             # Output directory for models and summaries
-            timestamp = str(int(time.time()))
-            out_dir = os.path.abspath(os.path.join(os.path.curdir, "runs", timestamp))
-            logger.info("✔︎ Writing to {}\n".format(out_dir))
+            if FLAGS.train_or_restore == 'R':
+                MODEL = input("☛ Please input the checkpoints model you want to restore, "
+                              "it should be like(1490175368): ")  # The model you want to restore
+
+                while not (MODEL.isdigit() and len(MODEL) == 10):
+                    MODEL = input('✘ The format of your input is illegal, please re-input: ')
+                logger.info('✔︎ The format of your input is legal, now loading to next step...')
+
+                checkpoint_dir = 'runs/' + MODEL + '/checkpoints/'
+
+                out_dir = os.path.abspath(os.path.join(os.path.curdir, "runs", MODEL))
+                logger.info("✔︎ Writing to {}\n".format(out_dir))
+            else:
+                timestamp = str(int(time.time()))
+                out_dir = os.path.abspath(os.path.join(os.path.curdir, "runs", timestamp))
+                logger.info("✔︎ Writing to {}\n".format(out_dir))
 
             # Summaries for loss and accuracy
             loss_summary = tf.summary.scalar("loss", cnn.loss)
@@ -133,16 +166,25 @@ def train_cnn():
             validation_summary_dir = os.path.join(out_dir, "summaries", "validation")
             validation_summary_writer = tf.summary.FileWriter(validation_summary_dir, sess.graph)
 
-            # Checkpoint directory. Tensorflow assumes this directory already exists so we need to create it
-            checkpoint_dir = os.path.abspath(os.path.join(out_dir, "checkpoints"))
-            checkpoint_prefix = os.path.join(checkpoint_dir, "model")
-            if not os.path.exists(checkpoint_dir):
-                os.makedirs(checkpoint_dir)
             saver = tf.train.Saver(tf.global_variables(), max_to_keep=FLAGS.num_checkpoints)
 
-            # Initialize all variables
-            sess.run(tf.global_variables_initializer())
-            sess.run(tf.local_variables_initializer())
+            if FLAGS.train_or_restore == 'R':
+                # Load cnn model
+                logger.info("✔ Loading model...")
+                checkpoint_file = tf.train.latest_checkpoint(checkpoint_dir)
+                logger.info(checkpoint_file)
+
+                # Load the saved meta graph and restore variables
+                saver = tf.train.import_meta_graph("{}.meta".format(checkpoint_file))
+                saver.restore(sess, checkpoint_file)
+            else:
+                checkpoint_dir = os.path.abspath(os.path.join(out_dir, "checkpoints"))
+                if not os.path.exists(checkpoint_dir):
+                    os.makedirs(checkpoint_dir)
+                sess.run(tf.global_variables_initializer())
+                sess.run(tf.local_variables_initializer())
+
+            current_step = sess.run(cnn.global_step)
 
             def train_step(x_batch_front, x_batch_behind, y_batch):
                 """A single training step"""
@@ -150,10 +192,11 @@ def train_cnn():
                     cnn.input_x_front: x_batch_front,
                     cnn.input_x_behind: x_batch_behind,
                     cnn.input_y: y_batch,
-                    cnn.dropout_keep_prob: FLAGS.dropout_keep_prob
+                    cnn.dropout_keep_prob: FLAGS.dropout_keep_prob,
+                    cnn.is_training: True
                 }
                 _, step, summaries, loss, accuracy = sess.run(
-                    [train_op, global_step, train_summary_op, cnn.loss, cnn.accuracy], feed_dict)
+                    [train_op, cnn.global_step, train_summary_op, cnn.loss, cnn.accuracy], feed_dict)
                 time_str = datetime.datetime.now().isoformat()
                 logger.info("{}: step {}, loss {:g}, acc {:g}"
                                  .format(time_str, step, loss, accuracy))
@@ -165,11 +208,12 @@ def train_cnn():
                     cnn.input_x_front: x_batch_front,
                     cnn.input_x_behind: x_batch_behind,
                     cnn.input_y: y_batch,
-                    cnn.dropout_keep_prob: 1.0
+                    cnn.dropout_keep_prob: 1.0,
+                    cnn.is_training: False
                 }
                 step, summaries, scores, predictions, num_correct, \
                 loss, accuracy, recall, precision, f1, auc, topKPreds, = sess.run(
-                    [global_step, validation_summary_op, cnn.scores, cnn.predictions, cnn.num_correct,
+                    [cnn.global_step, validation_summary_op, cnn.scores, cnn.predictions, cnn.num_correct,
                      cnn.loss, cnn.accuracy, cnn.recall, cnn.precision, cnn.F1, cnn.AUC, cnn.topKPreds], feed_dict)
                 time_str = datetime.datetime.now().isoformat()
                 logger.info("{}: step {}, loss {:g}, acc {:g}, "
@@ -187,12 +231,15 @@ def train_cnn():
             for batch in batches:
                 x_batch_front, x_batch_behind, y_batch = zip(*batch)
                 train_step(x_batch_front, x_batch_behind, y_batch)
-                current_step = tf.train.global_step(sess, global_step)
+                current_step = tf.train.global_step(sess, cnn.global_step)
+
                 if current_step % FLAGS.evaluate_every == 0:
                     logger.info("\nEvaluation:")
                     validation_step(x_validation_front, x_validation_behind, y_validation,
                                     writer=validation_summary_writer)
+
                 if current_step % FLAGS.checkpoint_every == 0:
+                    checkpoint_prefix = os.path.join(checkpoint_dir, "model")
                     path = saver.save(sess, checkpoint_prefix, global_step=current_step)
                     logger.info("✔︎ Saved model checkpoint to {}\n".format(path))
 

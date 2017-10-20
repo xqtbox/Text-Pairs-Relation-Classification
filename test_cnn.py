@@ -6,6 +6,9 @@ import numpy as np
 import tensorflow as tf
 import data_helpers
 
+# Parameters
+# ==================================================
+
 logger = data_helpers.logger_fn('tflog', 'test-{}.log'.format(time.asctime()))
 
 user_input = input("☛ Please input the subset and the model file you want to test, it should be like(11, 1490175368): ")
@@ -33,12 +36,13 @@ tf.flags.DEFINE_string("checkpoint_dir", MODEL_DIR, "Checkpoint directory from t
 tf.flags.DEFINE_integer("pad_seq_len", 120, "Recommand padding Sequence length of data (depends on the data)")
 tf.flags.DEFINE_integer("embedding_dim", 300, "Dimensionality of character embedding (default: 128)")
 tf.flags.DEFINE_integer("embedding_type", 1, "The embedding type (default: 1)")
+tf.flags.DEFINE_integer("fc_hidden_size", 1024, "Hidden size for fully connected layer (default: 1024)")
 tf.flags.DEFINE_string("filter_sizes", "3,4,5", "Comma-separated filter sizes (default: '3,4,5')")
 tf.flags.DEFINE_integer("num_filters", 128, "Number of filters per filter size (default: 128)")
 tf.flags.DEFINE_float("dropout_keep_prob", 0.5, "Dropout keep probability (default: 0.5)")
 tf.flags.DEFINE_float("l2_reg_lambda", 0.0, "L2 regularization lambda (default: 0.0)")
 
-# Training parameters
+# Test parameters
 tf.flags.DEFINE_integer("batch_size", 64, "Batch Size (default: 64)")
 
 # Misc Parameters
@@ -58,15 +62,12 @@ def test_cnn():
 
     # Load data
     logger.info("✔ Loading data...")
-
     logger.info('Recommand padding Sequence length is: {}'.format(FLAGS.pad_seq_len))
 
     logger.info('✔︎ Test data processing...')
-
     test_data = data_helpers.load_data_and_labels(FLAGS.test_data_file, FLAGS.embedding_dim)
 
     logger.info('✔︎ Test data padding...')
-
     x_test_front, x_test_behind, y_test = data_helpers.pad_data(test_data, FLAGS.pad_seq_len)
 
     # Build vocabulary
@@ -98,7 +99,7 @@ def test_cnn():
             dropout_keep_prob = graph.get_operation_by_name("dropout_keep_prob").outputs[0]
 
             # pre-trained_word2vec
-            pretrained_embedding = graph.get_operation_by_name("embedding/W").outputs[0]
+            pretrained_embedding = graph.get_operation_by_name("embedding/embedding").outputs[0]
 
             # Tensors we want to evaluate
             scores = graph.get_operation_by_name("output/scores").outputs
