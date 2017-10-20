@@ -6,7 +6,7 @@ import gensim
 import logging
 import json
 import numpy as np
-import matplotlib.pyplot as plt
+
 
 from pylab import *
 from gensim.models import word2vec
@@ -99,16 +99,16 @@ def data_word2vec(input_file, word2vec_model):
                 return total_line
 
             @property
-            def labels(self):
-                return labels
-
-            @property
             def front_tokenindex(self):
                 return front_content_indexlist
 
             @property
             def behind_tokenindex(self):
                 return behind_content_indexlist
+
+            @property
+            def labels(self):
+                return labels
 
         return Data()
     else:
@@ -157,7 +157,7 @@ def load_data_and_labels(data_file, embedding_size):
     # Load data from files and split by words
     data = data_word2vec(input_file=data_file, word2vec_model=model)
 
-    plot_seq_len(data_file, data)
+    # plot_seq_len(data_file, data)
 
     logging.info('Found {} texts.'.format(data.number))
 
@@ -182,7 +182,7 @@ def plot_seq_len(data_file, data, percentage=0.98):
     """
     Visualizing the sentence length of each data sentence.
     :param data_file: The data_file
-    :param data: The class Data(includes the data tokenindex and data labels)
+    :param data: The class Data (includes the data tokenindex and data labels)
     :param percentage: The percentage of the total data you want to show
     """
     if 'train' in data_file.lower():
