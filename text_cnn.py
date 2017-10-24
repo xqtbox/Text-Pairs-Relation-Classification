@@ -167,7 +167,7 @@ class TextCNN(object):
         with tf.name_scope("dropout"):
             self.h_drop = tf.nn.dropout(self.fc_out, self.dropout_keep_prob)
 
-        # Final (unnormalized) scores and predictions
+        # Final scores and predictions
         with tf.name_scope("output"):
             W = tf.Variable(tf.truncated_normal(shape=[fc_hidden_size, num_classes], stddev=0.1), name="W")
             b = tf.Variable(tf.constant(0.1, shape=[num_classes]), name="b")
@@ -178,7 +178,7 @@ class TextCNN(object):
             self.predictions = tf.argmax(self.scores, 1, name="predictions")
             self.topKPreds = tf.nn.top_k(self.softmaxScores, k=1, sorted=True, name="topKPreds")
 
-        # CalculateMean cross-entropy loss
+        # Calculate mean cross-entropy loss
         with tf.name_scope("loss"):
             losses = tf.nn.softmax_cross_entropy_with_logits(labels=self.input_y, logits=self.scores)
             self.loss = tf.reduce_mean(losses) + l2_reg_lambda * l2_loss
