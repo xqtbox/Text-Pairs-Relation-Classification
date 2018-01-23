@@ -69,7 +69,7 @@ tf.flags.DEFINE_boolean("gpu_options_allow_growth", True, "Allow gpu options gro
 FLAGS = tf.flags.FLAGS
 FLAGS._parse_flags()
 dilim = '-' * 100
-logger.info('\n'.join([dilim, *['{:>50}|{:<50}'.format(attr.upper(), value)
+logger.info('\n'.join([dilim, *['{0:>50}|{1:<50}'.format(attr.upper(), value)
                                 for attr, value in sorted(FLAGS.__flags.items())], dilim]))
 
 
@@ -199,8 +199,7 @@ def train_cnn():
                 _, step, summaries, loss, accuracy = sess.run(
                     [train_op, cnn.global_step, train_summary_op, cnn.loss, cnn.accuracy], feed_dict)
                 time_str = datetime.datetime.now().isoformat()
-                logger.info("{0}: step {1}, loss {2:g}, acc {3:g}"
-                                 .format(time_str, step, loss, accuracy))
+                logger.info("{0}: step {1}, loss {2:g}, acc {3:g}".format(time_str, step, loss, accuracy))
                 train_summary_writer.add_summary(summaries, step)
 
             def validation_step(x_batch_front, x_batch_behind, y_batch, writer=None):
@@ -219,8 +218,7 @@ def train_cnn():
                 time_str = datetime.datetime.now().isoformat()
                 logger.info("{0}: step {1}, loss {2:g}, acc {3:g}, "
                             "recall {4:g}, precision {5:g}, f1 {6:g}, AUC {7}"
-                            .format(time_str, step, loss, accuracy,
-                                    recall, precision, f1, auc))
+                            .format(time_str, step, loss, accuracy, recall, precision, f1, auc))
                 if writer:
                     writer.add_summary(summaries, step)
 
