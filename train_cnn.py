@@ -1,4 +1,5 @@
 # -*- coding:utf-8 -*-
+__author__ = 'Randolph'
 
 import os
 import time
@@ -26,9 +27,9 @@ while not (SUBSET.isdigit() and int(SUBSET) in range(1, 12)):
 logging.info('✔︎ The format of your input is legal, now loading to next step...')
 
 if TRAIN_OR_RESTORE == 'T':
-    logger = data_helpers.logger_fn('tflog', 'training-{}.log'.format(time.asctime()))
+    logger = data_helpers.logger_fn('tflog', 'training-{0}.log'.format(time.asctime()))
 if TRAIN_OR_RESTORE == 'R':
-    logger = data_helpers.logger_fn('tflog', 'restore-{}.log'.format(time.asctime()))
+    logger = data_helpers.logger_fn('tflog', 'restore-{0}.log'.format(time.asctime()))
 
 TRAININGSET_DIR = 'Model Training' + '/Model' + SUBSET + '_Training.json'
 VALIDATIONSET_DIR = 'Model Validation' + '/Model' + SUBSET + '_Validation.json'
@@ -42,7 +43,7 @@ tf.flags.DEFINE_string("train_or_restore", TRAIN_OR_RESTORE, "Train or Restore."
 
 # Model Hyperparameterss
 tf.flags.DEFINE_float("learning_rate", 0.001, "The learning rate (default: 0.001)")
-tf.flags.DEFINE_integer("pad_seq_len", 120, "Recommand padding Sequence length of data (depends on the data)")
+tf.flags.DEFINE_integer("pad_seq_len", 120, "Recommended padding Sequence length of data (depends on the data)")
 tf.flags.DEFINE_integer("embedding_dim", 300, "Dimensionality of character embedding (default: 128)")
 tf.flags.DEFINE_integer("embedding_type", 1, "The embedding type (default: 1)")
 tf.flags.DEFINE_integer("fc_hidden_size", 1024, "Hidden size for fully connected layer (default: 1024)")
@@ -84,7 +85,7 @@ def train_cnn():
     logger.info('✔︎ Validation data processing...')
     validation_data = data_helpers.load_data_and_labels(FLAGS.validation_data_file, FLAGS.embedding_dim)
 
-    logger.info('Recommand padding Sequence length is: {}'.format(FLAGS.pad_seq_len))
+    logger.info('Recommended padding Sequence length is: {0}'.format(FLAGS.pad_seq_len))
 
     logger.info('✔︎ Training data padding...')
     x_train_front, x_train_behind, y_train = data_helpers.pad_data(train_data, FLAGS.pad_seq_len)
@@ -128,8 +129,8 @@ def train_cnn():
             grad_summaries = []
             for g, v in grads_and_vars:
                 if g is not None:
-                    grad_hist_summary = tf.summary.histogram("{}/grad/hist".format(v.name), g)
-                    sparsity_summary = tf.summary.scalar("{}/grad/sparsity".format(v.name), tf.nn.zero_fraction(g))
+                    grad_hist_summary = tf.summary.histogram("{0}/grad/hist".format(v.name), g)
+                    sparsity_summary = tf.summary.scalar("{0}/grad/sparsity".format(v.name), tf.nn.zero_fraction(g))
                     grad_summaries.append(grad_hist_summary)
                     grad_summaries.append(sparsity_summary)
             grad_summaries_merged = tf.summary.merge(grad_summaries)
@@ -146,11 +147,11 @@ def train_cnn():
                 checkpoint_dir = 'runs/' + MODEL + '/checkpoints/'
 
                 out_dir = os.path.abspath(os.path.join(os.path.curdir, "runs", MODEL))
-                logger.info("✔︎ Writing to {}\n".format(out_dir))
+                logger.info("✔︎ Writing to {0}\n".format(out_dir))
             else:
                 timestamp = str(int(time.time()))
                 out_dir = os.path.abspath(os.path.join(os.path.curdir, "runs", timestamp))
-                logger.info("✔︎ Writing to {}\n".format(out_dir))
+                logger.info("✔︎ Writing to {0}\n".format(out_dir))
 
             # Summaries for loss and accuracy
             loss_summary = tf.summary.scalar("loss", cnn.loss)
@@ -175,7 +176,7 @@ def train_cnn():
                 logger.info(checkpoint_file)
 
                 # Load the saved meta graph and restore variables
-                saver = tf.train.import_meta_graph("{}.meta".format(checkpoint_file))
+                saver = tf.train.import_meta_graph("{0}.meta".format(checkpoint_file))
                 saver.restore(sess, checkpoint_file)
             else:
                 checkpoint_dir = os.path.abspath(os.path.join(out_dir, "checkpoints"))
@@ -198,7 +199,7 @@ def train_cnn():
                 _, step, summaries, loss, accuracy = sess.run(
                     [train_op, cnn.global_step, train_summary_op, cnn.loss, cnn.accuracy], feed_dict)
                 time_str = datetime.datetime.now().isoformat()
-                logger.info("{}: step {}, loss {:g}, acc {:g}"
+                logger.info("{0}: step {1}, loss {2:g}, acc {3:g}"
                                  .format(time_str, step, loss, accuracy))
                 train_summary_writer.add_summary(summaries, step)
 
@@ -216,8 +217,8 @@ def train_cnn():
                     [cnn.global_step, validation_summary_op, cnn.scores, cnn.predictions, cnn.num_correct,
                      cnn.loss, cnn.accuracy, cnn.recall, cnn.precision, cnn.F1, cnn.AUC, cnn.topKPreds], feed_dict)
                 time_str = datetime.datetime.now().isoformat()
-                logger.info("{}: step {}, loss {:g}, acc {:g}, "
-                            "recall {:g}, precision {:g}, f1 {:g}, AUC {}"
+                logger.info("{0}: step {1}, loss {2:g}, acc {3:g}, "
+                            "recall {4:g}, precision {5:g}, f1 {6:g}, AUC {7}"
                             .format(time_str, step, loss, accuracy,
                                     recall, precision, f1, auc))
                 if writer:
@@ -241,7 +242,7 @@ def train_cnn():
                 if current_step % FLAGS.checkpoint_every == 0:
                     checkpoint_prefix = os.path.join(checkpoint_dir, "model")
                     path = saver.save(sess, checkpoint_prefix, global_step=current_step)
-                    logger.info("✔︎ Saved model checkpoint to {}\n".format(path))
+                    logger.info("✔︎ Saved model checkpoint to {0}\n".format(path))
 
     logger.info("✔︎ Done.")
 

@@ -1,4 +1,5 @@
 # -*- coding:utf-8 -*-
+__author__ = 'Randolph'
 
 import os
 import multiprocessing
@@ -159,7 +160,7 @@ def load_data_and_labels(data_file, embedding_size):
 
     # plot_seq_len(data_file, data)
 
-    logging.info('Found {} texts.'.format(data.number))
+    logging.info('Found {0} texts.'.format(data.number))
 
     return data
 
@@ -211,8 +212,8 @@ def plot_seq_len(data_file, data, percentage=0.98):
         if (count / 2) > data.number * percentage:
             border_index.append(item[0])
     avg = avg / (2 * data.number)
-    logging.info('The average of the data sequence length is {}'.format(avg))
-    logging.info('The recommend of padding sequence length should more than {}'.format(border_index[0]))
+    logging.info('The average of the data sequence length is {0}'.format(avg))
+    logging.info('The recommend of padding sequence length should more than {0}'.format(border_index[0]))
     xlim(0, 200)
     plt.bar(x, y)
     plt.savefig(output_file)

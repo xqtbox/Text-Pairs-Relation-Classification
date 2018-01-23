@@ -1,4 +1,5 @@
 # -*- coding:utf-8 -*-
+__author__ = 'Randolph'
 
 import tensorflow as tf
 from tensorflow.contrib.layers import batch_norm
@@ -17,9 +18,9 @@ def linear(input_, output_size, name=None):
 
     shape = input_.get_shape().as_list()
     if len(shape) != 2:
-        raise ValueError("Linear is expecting 2D arguments: {}".format(str(shape)))
+        raise ValueError("Linear is expecting 2D arguments: {0}".format(str(shape)))
     if not shape[1]:
-        raise ValueError("Linear expects shape[1] of arguments: {}".format(str(shape)))
+        raise ValueError("Linear expects shape[1] of arguments: {0}".format(str(shape)))
     input_size = shape[1]
 
     # Now the computation.
@@ -40,8 +41,8 @@ def highway(input_, size, num_layers=1, bias=-2.0, act=tf.nn.relu, name=None):
 
     with tf.name_scope(name or "Highway"):
         for idx in range(num_layers):
-            g = act(linear(input_, size, name='highway_lin_{}'.format(idx)))
-            t = tf.sigmoid(linear(input_, size, name='highway_gate_{}'.format(idx)) + bias)
+            g = act(linear(input_, size, name='highway_lin_{0}'.format(idx)))
+            t = tf.sigmoid(linear(input_, size, name='highway_gate_{0}'.format(idx)) + bias)
             output = t * g + (1. - t) * input_
             input_ = output
 
@@ -69,8 +70,8 @@ class TextCNN(object):
 
         # Embedding layer
         with tf.device('/cpu:0'), tf.name_scope("embedding"):
-            # 默认采用的是随机生成正态分布的词向量。
-            # 也可以是通过自己的语料库训练而得到的词向量。
+            # Use random generated the word vector by default
+            # Can also be obtained through our own word vectors trained by our corpus
             if pretrained_embedding is None:
                 self.embedding = tf.Variable(tf.random_uniform([vocab_size, embedding_size], -1.0, 1.0),
                                              name="embedding")
@@ -91,7 +92,7 @@ class TextCNN(object):
         pooled_outputs_behind = []
 
         for i, filter_size in enumerate(filter_sizes):
-            with tf.name_scope("conv-filter{}".format(filter_size)):
+            with tf.name_scope("conv-filter{0}".format(filter_size)):
                 # Convolution Layer
                 filter_shape = [filter_size, embedding_size, 1, num_filters]
                 W = tf.Variable(tf.truncated_normal(shape=filter_shape, stddev=0.1), name="W")
@@ -118,7 +119,7 @@ class TextCNN(object):
                 conv_out_front = tf.nn.relu(conv_bn_front, name="relu_front")
                 conv_out_behind = tf.nn.relu(conv_bn_behind, name="relu_behind")
 
-            with tf.name_scope("pool-filter{}".format(filter_size)):
+            with tf.name_scope("pool-filter{0}".format(filter_size)):
                 # Maxpooling over the outputs
                 pooled_front = tf.nn.max_pool(
                     conv_out_front,
@@ -174,9 +175,9 @@ class TextCNN(object):
             l2_loss += tf.nn.l2_loss(W)
             l2_loss += tf.nn.l2_loss(b)
             self.scores = tf.nn.xw_plus_b(self.h_drop, W, b, name="scores")
-            self.softmaxScores = tf.nn.softmax(self.scores, name="softmaxScores")
+            self.softmax_scores = tf.nn.softmax(self.scores, name="SoftMax_scores")
             self.predictions = tf.argmax(self.scores, 1, name="predictions")
-            self.topKPreds = tf.nn.top_k(self.softmaxScores, k=1, sorted=True, name="topKPreds")
+            self.topKPreds = tf.nn.top_k(self.softmax_scores, k=1, sorted=True, name="topKPreds")
 
         # Calculate mean cross-entropy loss
         with tf.name_scope("loss"):
@@ -217,4 +218,4 @@ class TextCNN(object):
 
         # AUC
         with tf.name_scope("AUC"):
-            self.AUC = tf.contrib.metrics.streaming_auc(self.softmaxScores, self.input_y, name="AUC")
+            self.AUC = tf.contrib.metrics.streaming_auc(self.softmax_scores, self.input_y, name="AUC")

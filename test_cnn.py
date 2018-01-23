@@ -1,6 +1,6 @@
 # -*- coding:utf-8 -*-
+__author__ = 'Randolph'
 
-import os
 import time
 import numpy as np
 import tensorflow as tf
@@ -9,7 +9,7 @@ import data_helpers
 # Parameters
 # ==================================================
 
-logger = data_helpers.logger_fn('tflog', 'test-{}.log'.format(time.asctime()))
+logger = data_helpers.logger_fn('tflog', 'test-{0}.log'.format(time.asctime()))
 
 user_input = input("☛ Please input the subset and the model file you want to test, it should be like(11, 1490175368): ")
 SUBSET = user_input.split(',')[0]
@@ -33,7 +33,7 @@ tf.flags.DEFINE_string("test_data_file", TESTSET_DIR, "Data source for the test 
 tf.flags.DEFINE_string("checkpoint_dir", MODEL_DIR, "Checkpoint directory from training run")
 
 # Model Hyperparameters
-tf.flags.DEFINE_integer("pad_seq_len", 120, "Recommand padding Sequence length of data (depends on the data)")
+tf.flags.DEFINE_integer("pad_seq_len", 120, "Recommended padding Sequence length of data (depends on the data)")
 tf.flags.DEFINE_integer("embedding_dim", 300, "Dimensionality of character embedding (default: 128)")
 tf.flags.DEFINE_integer("embedding_type", 1, "The embedding type (default: 1)")
 tf.flags.DEFINE_integer("fc_hidden_size", 1024, "Hidden size for fully connected layer (default: 1024)")
@@ -62,7 +62,7 @@ def test_cnn():
 
     # Load data
     logger.info("✔ Loading data...")
-    logger.info('Recommand padding Sequence length is: {}'.format(FLAGS.pad_seq_len))
+    logger.info('Recommand padding Sequence length is: {0}'.format(FLAGS.pad_seq_len))
 
     logger.info('✔︎ Test data processing...')
     test_data = data_helpers.load_data_and_labels(FLAGS.test_data_file, FLAGS.embedding_dim)
@@ -88,7 +88,7 @@ def test_cnn():
         sess = tf.Session(config=session_conf)
         with sess.as_default():
             # Load the saved meta graph and restore variables
-            saver = tf.train.import_meta_graph("{}.meta".format(checkpoint_file))
+            saver = tf.train.import_meta_graph("{0}.meta".format(checkpoint_file))
             saver.restore(sess, checkpoint_file)
 
             # Get the placeholders from the graph by name
@@ -104,7 +104,7 @@ def test_cnn():
             # Tensors we want to evaluate
             scores = graph.get_operation_by_name("output/scores").outputs
             predictions = graph.get_operation_by_name("output/predictions").outputs[0]
-            softmaxScores = graph.get_operation_by_name("output/softmaxScores").outputs[0]
+            softmax_scores = graph.get_operation_by_name("output/SoftMax_scores").outputs[0]
             topKPreds = graph.get_operation_by_name("output/topKPreds").outputs[0]
 
             # Generate batches for one epoch
@@ -113,7 +113,7 @@ def test_cnn():
 
             # Collect the predictions here
             all_scores = []
-            all_softMaxScores = []
+            all_softmax_scores = []
             all_predictions = []
             all_topKPreds = []
 
@@ -127,8 +127,8 @@ def test_cnn():
                 batch_scores = sess.run(scores, feed_dict)
                 all_scores = np.append(all_scores, batch_scores)
 
-                batch_softmax_scores = sess.run(softmaxScores, feed_dict)
-                all_softMaxScores = np.append(all_softMaxScores, batch_softmax_scores)
+                batch_softmax_scores = sess.run(softmax_scores, feed_dict)
+                all_softmax_scores = np.append(all_softmax_scores, batch_softmax_scores)
 
                 batch_predictions = sess.run(predictions, feed_dict)
                 all_predictions = np.concatenate([all_predictions, batch_predictions])
