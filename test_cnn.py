@@ -107,6 +107,13 @@ def test_cnn():
             softmax_scores = graph.get_operation_by_name("output/SoftMax_scores").outputs[0]
             topKPreds = graph.get_operation_by_name("output/topKPreds").outputs[0]
 
+            output_node_names = 'output/scores|output/predictions|output/SoftMax_scores|output/topKPreds'
+
+            # Save the .pb model file
+            output_graph_def = tf.graph_util.convert_variables_to_constants(sess, sess.graph_def,
+                                                                            output_node_names.split("|"))
+            tf.train.write_graph(output_graph_def, 'graph', 'graph.pb', as_text=False)
+
             # Generate batches for one epoch
             batches = data_helpers.batch_iter(list(zip(x_test_front, x_test_behind)), FLAGS.batch_size, 1,
                                               shuffle=False)
