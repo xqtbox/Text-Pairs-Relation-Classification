@@ -107,6 +107,7 @@ def test_cnn():
             softmax_scores = graph.get_operation_by_name("output/SoftMax_scores").outputs[0]
             topKPreds = graph.get_operation_by_name("output/topKPreds").outputs[0]
 
+            # Split the output nodes name by '|' if you have several output nodes
             output_node_names = 'output/scores|output/predictions|output/SoftMax_scores|output/topKPreds'
 
             # Save the .pb model file
