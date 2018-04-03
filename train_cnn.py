@@ -39,7 +39,7 @@ VALIDATIONSET_DIR = 'Model Validation' + '/Model' + SUBSET + '_Validation.json'
 TESTSET_DIR = 'Model Test' + '/Model' + SUBSET + '_Test.json'
 METADATA_DIR = 'metadata.tsv'
 
-# Data loading params
+# Data Parameters
 tf.flags.DEFINE_string("training_data_file", TRAININGSET_DIR, "Data source for the training data.")
 tf.flags.DEFINE_string("validation_data_file", VALIDATIONSET_DIR, "Data source for the validation data.")
 tf.flags.DEFINE_string("test_data_file", TESTSET_DIR, "Data source for the test data.")
@@ -47,7 +47,7 @@ tf.flags.DEFINE_string("metadata_file", METADATA_DIR, "Metadata file for embeddi
                                                       "(Each line is a word segment in metadata_file).")
 tf.flags.DEFINE_string("train_or_restore", TRAIN_OR_RESTORE, "Train or Restore.")
 
-# Model Hyperparameterss
+# Model Hyperparameters
 tf.flags.DEFINE_float("learning_rate", 0.001, "The learning rate (default: 0.001)")
 tf.flags.DEFINE_integer("pad_seq_len", 120, "Recommended padding Sequence length of data (depends on the data)")
 tf.flags.DEFINE_integer("embedding_dim", 300, "Dimensionality of character embedding (default: 128)")
@@ -58,13 +58,13 @@ tf.flags.DEFINE_integer("num_filters", 128, "Number of filters per filter size (
 tf.flags.DEFINE_float("dropout_keep_prob", 0.5, "Dropout keep probability (default: 0.5)")
 tf.flags.DEFINE_float("l2_reg_lambda", 0.0, "L2 regularization lambda (default: 0.0)")
 
-# Training parameters
+# Training Parameters
 tf.flags.DEFINE_integer("batch_size", 64, "Batch Size (default: 64)")
 tf.flags.DEFINE_integer("num_epochs", 200, "Number of training epochs (default: 200)")
 tf.flags.DEFINE_integer("evaluate_every", 2000, "Evaluate model on dev set after this many steps (default: 100)")
 tf.flags.DEFINE_integer("decay_steps", 5000, "how many steps before decay learning rate.")
 tf.flags.DEFINE_float("decay_rate", 0.5, "Rate of decay for learning rate.")
-tf.flags.DEFINE_integer("checkpoint_every", 100, "Save model after this many steps (default: 100)")
+tf.flags.DEFINE_integer("checkpoint_every", 500, "Save model after this many steps (default: 100)")
 tf.flags.DEFINE_integer("num_checkpoints", 5, "Number of checkpoints to store (default: 5)")
 
 # Misc Parameters
@@ -123,7 +123,7 @@ def train_cnn():
                 l2_reg_lambda=FLAGS.l2_reg_lambda,
                 pretrained_embedding=pretrained_word2vec_matrix)
 
-            # Define Training procedure
+            # Define training procedure
             # learning_rate = tf.train.exponential_decay(learning_rate=FLAGS.learning_rate, global_step=cnn.global_step,
             #                                            decay_steps=FLAGS.decay_steps, decay_rate=FLAGS.decay_rate,
             #                                            staircase=True)
@@ -163,13 +163,13 @@ def train_cnn():
             loss_summary = tf.summary.scalar("loss", cnn.loss)
             acc_summary = tf.summary.scalar("accuracy", cnn.accuracy)
 
-            # Embedding Visualization
+            # Embedding visualization config
             config = projector.ProjectorConfig()
             embedding_conf = config.embeddings.add()
             embedding_conf.tensor_name = 'embedding:0'
             embedding_conf.metadata_path = os.path.join(os.path.curdir, FLAGS.metadata_file)
 
-            # Train Summaries
+            # Train summaries
             train_summary_op = tf.summary.merge([loss_summary, acc_summary, grad_summaries_merged])
             train_summary_dir = os.path.join(out_dir, "summaries", "train")
             train_summary_writer = tf.summary.FileWriter(train_summary_dir, sess.graph)
@@ -198,6 +198,9 @@ def train_cnn():
                     os.makedirs(checkpoint_dir)
                 sess.run(tf.global_variables_initializer())
                 sess.run(tf.local_variables_initializer())
+
+                # Save the embedding visualization
+                saver.save(sess, os.path.join(out_dir, "embedding", 'embedding.ckpt'))
 
             current_step = sess.run(cnn.global_step)
 
@@ -254,7 +257,6 @@ def train_cnn():
                 if current_step % FLAGS.checkpoint_every == 0:
                     checkpoint_prefix = os.path.join(checkpoint_dir, "model")
                     path = saver.save(sess, checkpoint_prefix, global_step=current_step)
-                    saver.save(sess, os.path.join(out_dir, "embedding", 'embedding.ckpt'))
                     logger.info("✔︎ Saved model checkpoint to {0}\n".format(path))
 
     logger.info("✔︎ Done.")
