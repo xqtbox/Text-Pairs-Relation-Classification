@@ -163,23 +163,15 @@ def train_cnn():
             loss_summary = tf.summary.scalar("loss", cnn.loss)
             acc_summary = tf.summary.scalar("accuracy", cnn.accuracy)
 
-            # Embedding visualization config
-            config = projector.ProjectorConfig()
-            embedding_conf = config.embeddings.add()
-            embedding_conf.tensor_name = 'embedding:0'
-            embedding_conf.metadata_path = os.path.join(os.path.curdir, FLAGS.metadata_file)
-
             # Train summaries
             train_summary_op = tf.summary.merge([loss_summary, acc_summary, grad_summaries_merged])
             train_summary_dir = os.path.join(out_dir, "summaries", "train")
             train_summary_writer = tf.summary.FileWriter(train_summary_dir, sess.graph)
-            projector.visualize_embeddings(train_summary_writer, config)
 
             # Validation summaries
             validation_summary_op = tf.summary.merge([loss_summary, acc_summary])
             validation_summary_dir = os.path.join(out_dir, "summaries", "validation")
             validation_summary_writer = tf.summary.FileWriter(validation_summary_dir, sess.graph)
-            projector.visualize_embeddings(validation_summary_writer, config)
 
             saver = tf.train.Saver(tf.global_variables(), max_to_keep=FLAGS.num_checkpoints)
 
@@ -199,8 +191,17 @@ def train_cnn():
                 sess.run(tf.global_variables_initializer())
                 sess.run(tf.local_variables_initializer())
 
+                # Embedding visualization config
+                config = projector.ProjectorConfig()
+                embedding_conf = config.embeddings.add()
+                embedding_conf.tensor_name = 'embedding'
+                embedding_conf.metadata_path = FLAGS.metadata_file
+
+                projector.visualize_embeddings(train_summary_writer, config)
+                projector.visualize_embeddings(validation_summary_writer, config)
+
                 # Save the embedding visualization
-                saver.save(sess, os.path.join(out_dir, "embedding", 'embedding.ckpt'))
+                saver.save(sess, os.path.join(out_dir, 'embedding', 'embedding.ckpt'))
 
             current_step = sess.run(cnn.global_step)
 
