@@ -196,28 +196,28 @@ class TextCNN(object):
             correct = tf.equal(self.predictions, tf.argmax(self.input_y, 1))
             self.num_correct = tf.reduce_sum(tf.cast(correct, "float"), name="num_correct")
 
-        # Number of Fp
+        # Calculate Fp
         with tf.name_scope("fp"):
             fp = tf.metrics.false_positives(labels=tf.argmax(self.input_y, 1), predictions=self.predictions)
             self.fp = tf.reduce_sum(tf.cast(fp, "float"), name="fp")
 
-        # Number of Fn
+        # Calculate Fn
         with tf.name_scope("fn"):
             fn = tf.metrics.false_negatives(labels=tf.argmax(self.input_y, 1), predictions=self.predictions)
             self.fn = tf.reduce_sum(tf.cast(fn, "float"), name="fn")
 
-        # Recall
+        # Calculate Recall
         with tf.name_scope("recall"):
             self.recall = self.num_correct / (self.num_correct + self.fn)
 
-        # Precision
+        # Calculate Precision
         with tf.name_scope("precision"):
             self.precision = self.num_correct / (self.num_correct + self.fp)
 
-        # F1
+        # Calculate F1
         with tf.name_scope("F1"):
             self.F1 = (2 * self.precision * self.recall) / (self.precision + self.recall)
 
-        # AUC
+        # Calculate AUC
         with tf.name_scope("AUC"):
             self.AUC = tf.metrics.auc(self.softmax_scores, self.input_y, name="AUC")

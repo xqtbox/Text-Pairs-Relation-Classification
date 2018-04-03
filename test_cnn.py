@@ -27,7 +27,7 @@ VALIDATIONSET_DIR = 'Model Validation' + '/Model' + SUBSET + '_Validation.json'
 TESTSET_DIR = 'Model Test' + '/Model' + SUBSET + '_Test.json'
 MODEL_DIR = 'runs/' + MODEL_LOG + '/checkpoints/'
 
-# Data loading params
+# Data Parameters
 tf.flags.DEFINE_string("training_data_file", TRAININGSET_DIR, "Data source for the training data.")
 tf.flags.DEFINE_string("validation_data_file", VALIDATIONSET_DIR, "Data source for the validation data")
 tf.flags.DEFINE_string("test_data_file", TESTSET_DIR, "Data source for the test data")
@@ -43,7 +43,7 @@ tf.flags.DEFINE_integer("num_filters", 128, "Number of filters per filter size (
 tf.flags.DEFINE_float("dropout_keep_prob", 0.5, "Dropout keep probability (default: 0.5)")
 tf.flags.DEFINE_float("l2_reg_lambda", 0.0, "L2 regularization lambda (default: 0.0)")
 
-# Test parameters
+# Test Parameters
 tf.flags.DEFINE_integer("batch_size", 64, "Batch Size (default: 64)")
 
 # Misc Parameters
@@ -99,7 +99,7 @@ def test_cnn():
             # input_y = graph.get_operation_by_name("input_y").outputs[0]
             dropout_keep_prob = graph.get_operation_by_name("dropout_keep_prob").outputs[0]
 
-            # pre-trained_word2vec
+            # pre-trained word2vec
             pretrained_embedding = graph.get_operation_by_name("embedding/embedding").outputs[0]
 
             # Tensors we want to evaluate
@@ -117,8 +117,7 @@ def test_cnn():
             tf.train.write_graph(output_graph_def, 'graph', 'graph.pb', as_text=False)
 
             # Generate batches for one epoch
-            batches = dh.batch_iter(list(zip(x_test_front, x_test_behind)), FLAGS.batch_size, 1,
-                                    shuffle=False)
+            batches = dh.batch_iter(list(zip(x_test_front, x_test_behind)), FLAGS.batch_size, 1, shuffle=False)
 
             # Collect the predictions here
             all_scores = []
