@@ -8,8 +8,8 @@ The project refer to [dennybritz/cnn-text-classification-tf](https://github.com/
 
 ## Requirements
 
-- Python 3.x
-- Tensorflow 1.0.0 +
+- Python 3.6
+- Tensorflow 1.7 +
 - Numpy
 - Gensim
 
