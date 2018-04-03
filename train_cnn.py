@@ -7,8 +7,10 @@ import time
 import datetime
 import logging
 import tensorflow as tf
-import data_helpers
+import data_helpers as dh
+
 from text_cnn import TextCNN
+from tensorboard.plugins import projector
 
 # Parameters
 # ==================================================
@@ -28,18 +30,21 @@ while not (SUBSET.isdigit() and int(SUBSET) in range(1, 12)):
 logging.info('✔︎ The format of your input is legal, now loading to next step...')
 
 if TRAIN_OR_RESTORE == 'T':
-    logger = data_helpers.logger_fn('tflog', 'training-{0}.log'.format(time.asctime()))
+    logger = dh.logger_fn('tflog', 'training-{0}.log'.format(time.asctime()))
 if TRAIN_OR_RESTORE == 'R':
-    logger = data_helpers.logger_fn('tflog', 'restore-{0}.log'.format(time.asctime()))
+    logger = dh.logger_fn('tflog', 'restore-{0}.log'.format(time.asctime()))
 
 TRAININGSET_DIR = 'Model Training' + '/Model' + SUBSET + '_Training.json'
 VALIDATIONSET_DIR = 'Model Validation' + '/Model' + SUBSET + '_Validation.json'
 TESTSET_DIR = 'Model Test' + '/Model' + SUBSET + '_Test.json'
+METADATA_DIR = 'metadata.tsv'
 
 # Data loading params
 tf.flags.DEFINE_string("training_data_file", TRAININGSET_DIR, "Data source for the training data.")
 tf.flags.DEFINE_string("validation_data_file", VALIDATIONSET_DIR, "Data source for the validation data.")
 tf.flags.DEFINE_string("test_data_file", TESTSET_DIR, "Data source for the test data.")
+tf.flags.DEFINE_string("metadata_file", METADATA_DIR, "Metadata file for embedding visualization"
+                                                      "(Each line is a word segment in metadata_file).")
 tf.flags.DEFINE_string("train_or_restore", TRAIN_OR_RESTORE, "Train or Restore.")
 
 # Model Hyperparameterss
@@ -81,22 +86,22 @@ def train_cnn():
     logger.info('✔︎ Loading data...')
 
     logger.info('✔︎ Training data processing...')
-    train_data = data_helpers.load_data_and_labels(FLAGS.training_data_file, FLAGS.embedding_dim)
+    train_data = dh.load_data_and_labels(FLAGS.training_data_file, FLAGS.embedding_dim)
 
     logger.info('✔︎ Validation data processing...')
-    validation_data = data_helpers.load_data_and_labels(FLAGS.validation_data_file, FLAGS.embedding_dim)
+    validation_data = dh.load_data_and_labels(FLAGS.validation_data_file, FLAGS.embedding_dim)
 
     logger.info('Recommended padding Sequence length is: {0}'.format(FLAGS.pad_seq_len))
 
     logger.info('✔︎ Training data padding...')
-    x_train_front, x_train_behind, y_train = data_helpers.pad_data(train_data, FLAGS.pad_seq_len)
+    x_train_front, x_train_behind, y_train = dh.pad_data(train_data, FLAGS.pad_seq_len)
 
     logger.info('✔︎ Validation data padding...')
-    x_validation_front, x_validation_behind, y_validation = data_helpers.pad_data(validation_data, FLAGS.pad_seq_len)
+    x_validation_front, x_validation_behind, y_validation = dh.pad_data(validation_data, FLAGS.pad_seq_len)
 
     # Build vocabulary
-    VOCAB_SIZE = data_helpers.load_vocab_size(FLAGS.embedding_dim)
-    pretrained_word2vec_matrix = data_helpers.load_word2vec_matrix(VOCAB_SIZE, FLAGS.embedding_dim)
+    VOCAB_SIZE = dh.load_vocab_size(FLAGS.embedding_dim)
+    pretrained_word2vec_matrix = dh.load_word2vec_matrix(VOCAB_SIZE, FLAGS.embedding_dim)
 
     # Build a graph and cnn object
     with tf.Graph().as_default():
@@ -158,15 +163,23 @@ def train_cnn():
             loss_summary = tf.summary.scalar("loss", cnn.loss)
             acc_summary = tf.summary.scalar("accuracy", cnn.accuracy)
 
+            # Embedding Visualization
+            config = projector.ProjectorConfig()
+            embedding_conf = config.embeddings.add()
+            embedding_conf.tensor_name = 'embedding:0'
+            embedding_conf.metadata_path = os.path.join(os.path.curdir, FLAGS.metadata_file)
+
             # Train Summaries
             train_summary_op = tf.summary.merge([loss_summary, acc_summary, grad_summaries_merged])
             train_summary_dir = os.path.join(out_dir, "summaries", "train")
             train_summary_writer = tf.summary.FileWriter(train_summary_dir, sess.graph)
+            projector.visualize_embeddings(train_summary_writer, config)
 
             # Validation summaries
             validation_summary_op = tf.summary.merge([loss_summary, acc_summary])
             validation_summary_dir = os.path.join(out_dir, "summaries", "validation")
             validation_summary_writer = tf.summary.FileWriter(validation_summary_dir, sess.graph)
+            projector.visualize_embeddings(validation_summary_writer, config)
 
             saver = tf.train.Saver(tf.global_variables(), max_to_keep=FLAGS.num_checkpoints)
 
@@ -224,7 +237,7 @@ def train_cnn():
                     writer.add_summary(summaries, step)
 
             # Generate batches
-            batches = data_helpers.batch_iter(
+            batches = dh.batch_iter(
                 list(zip(x_train_front, x_train_behind, y_train)), FLAGS.batch_size, FLAGS.num_epochs)
 
             # Training loop. For each batch...
@@ -241,6 +254,8 @@ def train_cnn():
                 if current_step % FLAGS.checkpoint_every == 0:
                     checkpoint_prefix = os.path.join(checkpoint_dir, "model")
                     path = saver.save(sess, checkpoint_prefix, global_step=current_step)
+                    saver.save(sess, os.path.join(train_summary_dir, 'model.ckpt'))
+                    saver.save(sess,os.path.join(validation_summary_dir, 'model.ckpt'))
                     logger.info("✔︎ Saved model checkpoint to {0}\n".format(path))
 
     logger.info("✔︎ Done.")
