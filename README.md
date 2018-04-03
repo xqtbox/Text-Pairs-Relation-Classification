@@ -29,13 +29,21 @@ Use `gensim` package to pre-train my data.
 
 ## Innovation
 
-1. Make the data support **Chinese** and English.(Which use `gensim` seems easy)
-2. Can use **your own pre-trained word vectors**.
-3. Deign **two subnetworks** to meet the task requirements.
-4. Add a new **Highway Layer**.
-5. Add **AUC** Performance Measure since the data is imbalanced.
-6. Can choose **train** the model directly or **restore** the model from checkpoint.  
-7. Add **model test code**. 
+### Data part
+1. Make the data support **Chinese** and English.(Which use `jieba` seems easy)
+2. Can use **your own pre-trained word vectors**.(Which use `gensim` seems easy)
+3. Add embedding visualization based on the **tensorboard**.
+
+### Model part
+1. Deign **two subnetworks** to solve the task --- Text Pairs Similarity Classification.
+2. Add a new **Highway Layer**.(Which is useful based on the performance)
+3. Add several performance measures(especially the **AUC**) since the data is imbalanced.
+
+### Code part
+1. Can choose to **train** the model directly or **restore** the model from checkpoint in `train_cnn.py`.  
+2. Add `test_cnn.py`, the **model test code**. 
+3. Add other useful data preprocess functions in `data_helpers.py`.
+4. Use `logging` for helping recording the whole info(including parameters display, model training info and etc).
 
 ## References
 
