@@ -8,7 +8,6 @@ import logging
 import json
 import numpy as np
 
-
 from pylab import *
 from gensim.models import word2vec
 from tflearn.data_utils import to_categorical, pad_sequences
@@ -26,20 +25,29 @@ def logger_fn(name, file, level=logging.INFO):
     return tf_logger
 
 
-def create_metadata_file(input_file=TEXT_DIR, output_file='metadata.tsv'):
+def create_metadata_file(vocab_size, embedding_size, output_file='metadata.tsv'):
     """
     Create the metadata file based on the corpus file(Use for the Embedding Visualization later).
     :param input_file: The corpus file
     :param output_file: The metadata file (default: 'metadata.tsv')
     """
-    with open(input_file, 'r', encoding='utf-8') as fin, open(output_file, 'w') as fout:
-        result = set()
-        for eachline in fin:
-            line = eachline.strip().split(' ')
-            for item in line:
-                result.add(item)
-        for item in result:
-            fout.write(item + '\n')
+    word2vec_file = 'word2vec_' + str(embedding_size) + '.model'
+
+    if os.path.isfile(word2vec_file):
+        model = gensim.models.Word2Vec.load(word2vec_file)
+        word2idx = dict([(k, v.index) for k, v in model.wv.vocab.items()])
+        word2idx_sorted = [(k, word2idx[k]) for k in sorted(word2idx, key=word2idx.get, reverse=False)]
+
+        with open(output_file, 'w+') as fout:
+            for word in word2idx_sorted:
+                if word[0] is None:
+                    logging.info("Emply Line, should replecaed by any thing else, or will cause a bug of tensorboard")
+                    fout.write('<Empty Line>' + '\n')
+                else:
+                    fout.write(word[0] + '\n')
+    else:
+        logging.info("✘ The word2vec file doesn't exist. "
+                     "Please use function <create_vocab_size(embedding_size)> to create it!")
 
 
 def create_word2vec_model(embedding_size, input_file=TEXT_DIR):
