@@ -5,12 +5,12 @@ import sys
 import time
 import numpy as np
 import tensorflow as tf
-import data_helpers
+import data_helpers as dh
 
 # Parameters
 # ==================================================
 
-logger = data_helpers.logger_fn('tflog', 'test-{0}.log'.format(time.asctime()))
+logger = dh.logger_fn('tflog', 'test-{0}.log'.format(time.asctime()))
 
 user_input = input("☛ Please input the subset and the model file you want to test, it should be like(11, 1490175368): ")
 SUBSET = user_input.split(',')[0]
@@ -66,14 +66,14 @@ def test_cnn():
     logger.info('Recommand padding Sequence length is: {0}'.format(FLAGS.pad_seq_len))
 
     logger.info('✔︎ Test data processing...')
-    test_data = data_helpers.load_data_and_labels(FLAGS.test_data_file, FLAGS.embedding_dim)
+    test_data = dh.load_data_and_labels(FLAGS.test_data_file, FLAGS.embedding_dim)
 
     logger.info('✔︎ Test data padding...')
-    x_test_front, x_test_behind, y_test = data_helpers.pad_data(test_data, FLAGS.pad_seq_len)
+    x_test_front, x_test_behind, y_test = dh.pad_data(test_data, FLAGS.pad_seq_len)
 
     # Build vocabulary
-    VOCAB_SIZE = data_helpers.load_vocab_size(FLAGS.embedding_dim)
-    pretrained_word2vec_matrix = data_helpers.load_word2vec_matrix(VOCAB_SIZE, FLAGS.embedding_dim)
+    VOCAB_SIZE = dh.load_vocab_size(FLAGS.embedding_dim)
+    pretrained_word2vec_matrix = dh.load_word2vec_matrix(VOCAB_SIZE, FLAGS.embedding_dim)
 
     # Load cnn model
     logger.info("✔ Loading model...")
@@ -117,8 +117,8 @@ def test_cnn():
             tf.train.write_graph(output_graph_def, 'graph', 'graph.pb', as_text=False)
 
             # Generate batches for one epoch
-            batches = data_helpers.batch_iter(list(zip(x_test_front, x_test_behind)), FLAGS.batch_size, 1,
-                                              shuffle=False)
+            batches = dh.batch_iter(list(zip(x_test_front, x_test_behind)), FLAGS.batch_size, 1,
+                                    shuffle=False)
 
             # Collect the predictions here
             all_scores = []

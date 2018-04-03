@@ -5,15 +5,18 @@ import tensorflow as tf
 from tensorflow.contrib.layers import batch_norm
 
 
-def linear(input_, output_size, name=None):
+def linear(input_, output_size, scope=None):
     """
     Linear map: output[k] = sum_i(Matrix[k, i] * args[i] ) + Bias[k]
-    :param input_: a tensor or a list of 2D, batch x n, Tensors.
-    :param output_size: int, second dimension of W[i].
-    :param name: VariableScope for the created subgraph; defaults to "Linear".
-    :returns: A 2D Tensor with shape [batch x output_size] equal to \
-                sum_i(args[i] * W[i]), where W[i]s are newly created matrices.
-    :raises: ValueError, if some of the arguments has unspecified or wrong shape.
+    Args:
+        args: a tensor or a list of 2D, batch x n, Tensors.
+        output_size: int, second dimension of W[i].
+        scope: VariableScope for the created subgraph; defaults to "Linear".
+    Returns:
+        A 2D Tensor with shape [batch x output_size] equal to
+        sum_i(args[i] * W[i]), where W[i]s are newly created matrices.
+    Raises:
+        ValueError: if some of the arguments has unspecified or wrong shape.
     """
 
     shape = input_.get_shape().as_list()
@@ -24,25 +27,26 @@ def linear(input_, output_size, name=None):
     input_size = shape[1]
 
     # Now the computation.
-    with tf.name_scope(name or "SimpleLinear"):
-        W = tf.Variable(tf.truncated_normal(shape=[output_size, input_size], stddev=0.1), dtype=input_.dtype, name="W")
-        b = tf.Variable(tf.constant(0.1, shape=[output_size]), dtype=input_.dtype, name="b")
+    with tf.variable_scope(scope or "SimpleLinear"):
+        W = tf.get_variable("W", [output_size, input_size], dtype=input_.dtype)
+        b = tf.get_variable("b", [output_size], dtype=input_.dtype)
 
-    return tf.nn.xw_plus_b(input_, W, b)
+    return tf.nn.xw_plus_b(input_, tf.transpose(W), b)
 
 
-def highway(input_, size, num_layers=1, bias=-2.0, act=tf.nn.relu, name=None):
+def highway(input_, size, num_layers=1, bias=-2.0, f=tf.nn.relu, scope='Highway', name="Highway"):
     """
     Highway Network (cf. http://arxiv.org/abs/1505.00387).
     t = sigmoid(Wy + b)
     z = t * g(Wy + b) + (1 - t) * y
     where g is nonlinearity, t is transform gate, and (1 - t) is carry gate.
+    :param name:
     """
 
-    with tf.name_scope(name or "Highway"):
+    with tf.variable_scope(scope):
         for idx in range(num_layers):
-            g = act(linear(input_, size, name='highway_lin_{0}'.format(idx)))
-            t = tf.sigmoid(linear(input_, size, name='highway_gate_{0}'.format(idx)) + bias)
+            g = f(linear(input_, size, scope=('highway_lin_{0}'.format(idx))))
+            t = tf.sigmoid(linear(input_, size, scope=('highway_gate_{0}'.format(idx))) + bias)
             output = t * g + (1. - t) * input_
             input_ = output
 
@@ -160,13 +164,11 @@ class TextCNN(object):
             self.fc_out = tf.nn.relu(self.fc_bn, name="relu")
 
         # Add highway
-        # with tf.name_scope("highway"):
-        #     self.h_highway = highway(self.pool_flat_combine, self.pool_flat_combine.get_shape()[1],
-        #                              num_layers=1, bias=0, name="Highway")
+        self.highway = highway(self.fc_out, self.fc_out.get_shape()[1], num_layers=1, bias=0, name="Highway")
 
         # Add dropout
         with tf.name_scope("dropout"):
-            self.h_drop = tf.nn.dropout(self.fc_out, self.dropout_keep_prob)
+            self.h_drop = tf.nn.dropout(self.highway, self.dropout_keep_prob)
 
         # Final scores and predictions
         with tf.name_scope("output"):
