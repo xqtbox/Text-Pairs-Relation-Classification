@@ -26,6 +26,22 @@ def logger_fn(name, file, level=logging.INFO):
     return tf_logger
 
 
+def create_metadata_file(input_file=TEXT_DIR, output_file='metadata.tsv'):
+    """
+    Create the metadata file based on the corpus file(Use for the Embedding Visualization later).
+    :param input_file: The corpus file
+    :param output_file: The metadata file (default: 'metadata.tsv')
+    """
+    with open(input_file, 'r', encoding='utf-8') as fin, open(output_file, 'w') as fout:
+        result = set()
+        for eachline in fin:
+            line = eachline.strip().split(' ')
+            for item in line:
+                result.add(item)
+        for item in result:
+            fout.write(item + '\n')
+
+
 def create_word2vec_model(embedding_size, input_file=TEXT_DIR):
     """
     Create the word2vec model based on the given embedding size and the corpus file.
@@ -233,7 +249,7 @@ def batch_iter(data, batch_size, num_epochs, shuffle=True):
     """
     data = np.array(data)
     data_size = len(data)
-    num_batches_per_epoch = int((len(data) - 1) / batch_size) + 1
+    num_batches_per_epoch = int((data_size - 1) / batch_size) + 1
     for epoch in range(num_epochs):
         # Shuffle the data at each epoch
         if shuffle:
