@@ -181,7 +181,7 @@ class TextCNN(object):
 
         # Calculate mean cross-entropy loss
         with tf.name_scope("loss"):
-            losses = tf.nn.softmax_cross_entropy_with_logits(labels=self.input_y, logits=self.scores)
+            losses = tf.nn.softmax_cross_entropy_with_logits_v2(labels=self.input_y, logits=self.scores)
             self.loss = tf.reduce_mean(losses) + l2_reg_lambda * l2_loss
 
         # Accuracy
@@ -218,4 +218,4 @@ class TextCNN(object):
 
         # AUC
         with tf.name_scope("AUC"):
-            self.AUC = tf.contrib.metrics.streaming_auc(self.softmax_scores, self.input_y, name="AUC")
+            self.AUC = tf.metrics.auc(self.softmax_scores, self.input_y, name="AUC")

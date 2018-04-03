@@ -1,6 +1,7 @@
 # -*- coding:utf-8 -*-
 __author__ = 'Randolph'
 
+import sys
 import time
 import numpy as np
 import tensorflow as tf
@@ -51,10 +52,10 @@ tf.flags.DEFINE_boolean("log_device_placement", False, "Log placement of ops on 
 tf.flags.DEFINE_boolean("gpu_options_allow_growth", True, "Allow gpu options growth")
 
 FLAGS = tf.flags.FLAGS
-FLAGS._parse_flags()
+FLAGS(sys.argv)
 dilim = '-' * 100
-logger.info('\n'.join([dilim, *['{0:>50}|{1:<50}'.format(attr.upper(), value)
-                                for attr, value in sorted(FLAGS.__flags.items())], dilim]))
+logger.info('\n'.join([dilim, *['{0:>50}|{1:<50}'.format(attr.upper(), FLAGS.__getattr__(attr))
+                                for attr in sorted(FLAGS.__dict__['__wrapped'])], dilim]))
 
 
 def test_cnn():
