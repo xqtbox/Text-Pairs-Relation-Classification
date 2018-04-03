@@ -64,7 +64,7 @@ tf.flags.DEFINE_integer("num_epochs", 200, "Number of training epochs (default: 
 tf.flags.DEFINE_integer("evaluate_every", 2000, "Evaluate model on dev set after this many steps (default: 100)")
 tf.flags.DEFINE_integer("decay_steps", 5000, "how many steps before decay learning rate.")
 tf.flags.DEFINE_float("decay_rate", 0.5, "Rate of decay for learning rate.")
-tf.flags.DEFINE_integer("checkpoint_every", 500, "Save model after this many steps (default: 100)")
+tf.flags.DEFINE_integer("checkpoint_every", 100, "Save model after this many steps (default: 100)")
 tf.flags.DEFINE_integer("num_checkpoints", 5, "Number of checkpoints to store (default: 5)")
 
 # Misc Parameters
@@ -254,8 +254,7 @@ def train_cnn():
                 if current_step % FLAGS.checkpoint_every == 0:
                     checkpoint_prefix = os.path.join(checkpoint_dir, "model")
                     path = saver.save(sess, checkpoint_prefix, global_step=current_step)
-                    saver.save(sess, os.path.join(train_summary_dir, 'model.ckpt'))
-                    saver.save(sess,os.path.join(validation_summary_dir, 'model.ckpt'))
+                    saver.save(sess, os.path.join(out_dir, "embedding", 'embedding.ckpt'))
                     logger.info("✔︎ Saved model checkpoint to {0}\n".format(path))
 
     logger.info("✔︎ Done.")
