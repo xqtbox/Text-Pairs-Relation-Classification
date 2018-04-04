@@ -5,12 +5,12 @@ import sys
 import time
 import numpy as np
 import tensorflow as tf
-import data_helpers as dh
+from utils import data_helpers as dh
 
 # Parameters
 # ==================================================
 
-logger = dh.logger_fn('tflog', 'test-{0}.log'.format(time.asctime()))
+logger = dh.logger_fn('tflog', 'logs/test-{0}.log'.format(time.asctime()))
 
 user_input = input("☛ Please input the subset and the model file you want to test, it should be like(11, 1490175368): ")
 SUBSET = user_input.split(',')[0]
@@ -22,9 +22,9 @@ logger.info('✔︎ The format of your input is legal, now loading to next step.
 
 SAVE_FILE = 'result' + SUBSET + '.txt'
 
-TRAININGSET_DIR = 'Model Training' + '/Model' + SUBSET + '_Training.json'
-VALIDATIONSET_DIR = 'Model Validation' + '/Model' + SUBSET + '_Validation.json'
-TESTSET_DIR = 'Model Test' + '/Model' + SUBSET + '_Test.json'
+TRAININGSET_DIR = '../data/Model Training/Model' + SUBSET + '_Training.json'
+VALIDATIONSET_DIR = '../data/Model Validation/Model' + SUBSET + '_Validation.json'
+TESTSET_DIR = '../data/Model Test/Model' + SUBSET + '_Test.json'
 MODEL_DIR = 'runs/' + MODEL_LOG + '/checkpoints/'
 
 # Data Parameters
@@ -63,7 +63,7 @@ def test_cnn():
 
     # Load data
     logger.info("✔ Loading data...")
-    logger.info('Recommand padding Sequence length is: {0}'.format(FLAGS.pad_seq_len))
+    logger.info('Recommended padding Sequence length is: {0}'.format(FLAGS.pad_seq_len))
 
     logger.info('✔︎ Test data processing...')
     test_data = dh.load_data_and_labels(FLAGS.test_data_file, FLAGS.embedding_dim)

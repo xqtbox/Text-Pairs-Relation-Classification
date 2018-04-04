@@ -13,6 +13,7 @@ from gensim.models import word2vec
 from tflearn.data_utils import to_categorical, pad_sequences
 
 TEXT_DIR = '../data/content.txt'
+METADATA_DIR = '../data/metadata.tsv'
 
 
 def logger_fn(name, file, level=logging.INFO):
@@ -25,7 +26,7 @@ def logger_fn(name, file, level=logging.INFO):
     return tf_logger
 
 
-def create_metadata_file(vocab_size, embedding_size, output_file='metadata.tsv'):
+def create_metadata_file(vocab_size, embedding_size, output_file=METADATA_DIR):
     """
     Create the metadata file based on the corpus file(Use for the Embedding Visualization later).
     :param input_file: The corpus file

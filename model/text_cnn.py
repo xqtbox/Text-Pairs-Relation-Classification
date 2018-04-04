@@ -40,7 +40,6 @@ def highway(input_, size, num_layers=1, bias=-2.0, f=tf.nn.relu, scope='Highway'
     t = sigmoid(Wy + b)
     z = t * g(Wy + b) + (1 - t) * y
     where g is nonlinearity, t is transform gate, and (1 - t) is carry gate.
-    :param name:
     """
 
     with tf.variable_scope(scope):
@@ -163,7 +162,7 @@ class TextCNN(object):
             # Apply nonlinearity
             self.fc_out = tf.nn.relu(self.fc_bn, name="relu")
 
-        # Add highway
+        # Highway Layer
         self.highway = highway(self.fc_out, self.fc_out.get_shape()[1], num_layers=1, bias=0, name="Highway")
 
         # Add dropout
@@ -173,7 +172,7 @@ class TextCNN(object):
         # Final scores and predictions
         with tf.name_scope("output"):
             W = tf.Variable(tf.truncated_normal(shape=[fc_hidden_size, num_classes], stddev=0.1), name="W")
-            b = tf.Variable(tf.constant(0.1, shape=[num_classes]), name="b")
+            b = tf.Variable(tf.constant(0.1, shape=[num_classes]), dtype=tf.float32, name="b")
             l2_loss += tf.nn.l2_loss(W)
             l2_loss += tf.nn.l2_loss(b)
             self.scores = tf.nn.xw_plus_b(self.h_drop, W, b, name="scores")
