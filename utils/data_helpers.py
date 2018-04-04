@@ -12,7 +12,7 @@ from pylab import *
 from gensim.models import word2vec
 from tflearn.data_utils import to_categorical, pad_sequences
 
-TEXT_DIR = 'content.txt'
+TEXT_DIR = '../data/content.txt'
 
 
 def logger_fn(name, file, level=logging.INFO):
@@ -31,7 +31,7 @@ def create_metadata_file(vocab_size, embedding_size, output_file='metadata.tsv')
     :param input_file: The corpus file
     :param output_file: The metadata file (default: 'metadata.tsv')
     """
-    word2vec_file = 'word2vec_' + str(embedding_size) + '.model'
+    word2vec_file = '../data/word2vec_' + str(embedding_size) + '.model'
 
     if os.path.isfile(word2vec_file):
         model = gensim.models.Word2Vec.load(word2vec_file)
@@ -56,7 +56,7 @@ def create_word2vec_model(embedding_size, input_file=TEXT_DIR):
     :param embedding_size: The embedding size
     :param input_file: The corpus file
     """
-    word2vec_file = 'word2vec_' + str(embedding_size) + '.model'
+    word2vec_file = '../data/word2vec_' + str(embedding_size) + '.model'
 
     if os.path.isfile(word2vec_file):
         logging.info('☛ The word2vec model you want create already exists!')
@@ -74,7 +74,7 @@ def load_vocab_size(embedding_size):
     :param embedding_size: The embedding size
     :return: The vocab size of the word2vec file
     """
-    word2vec_file = 'word2vec_' + str(embedding_size) + '.model'
+    word2vec_file = '../data/word2vec_' + str(embedding_size) + '.model'
 
     if os.path.isfile(word2vec_file):
         model = word2vec.Word2Vec.load(word2vec_file)
@@ -148,7 +148,7 @@ def load_word2vec_matrix(vocab_size, embedding_size):
     :param embedding_size: The embedding size
     :return: The word2vec model matrix
     """
-    word2vec_file = 'word2vec_' + str(embedding_size) + '.model'
+    word2vec_file = '../data/word2vec_' + str(embedding_size) + '.model'
 
     if os.path.isfile(word2vec_file):
         model = gensim.models.Word2Vec.load(word2vec_file)
@@ -171,7 +171,7 @@ def load_data_and_labels(data_file, embedding_size):
     :param embedding_size: The embedding size
     :returns: The class data and the max sentence length of the research data
     """
-    word2vec_file = 'word2vec_' + str(embedding_size) + '.model'
+    word2vec_file = '../data/word2vec_' + str(embedding_size) + '.model'
 
     # Load word2vec model file
     if os.path.isfile(word2vec_file):
@@ -189,7 +189,7 @@ def load_data_and_labels(data_file, embedding_size):
     return data
 
 
-def pad_data(data, max_seq_len):
+def pad_data(data, pad_seq_len):
     """
     Padding each sentence of research data according to the max sentence length.
     Returns the padded data and data labels.
@@ -197,8 +197,8 @@ def pad_data(data, max_seq_len):
     :param max_seq_len: The max sentence length of research data
     :returns: The padded data and data labels
     """
-    data_front = pad_sequences(data.front_tokenindex, maxlen=max_seq_len, value=0.)
-    data_behind = pad_sequences(data.behind_tokenindex, maxlen=max_seq_len, value=0.)
+    data_front = pad_sequences(data.front_tokenindex, maxlen=pad_seq_len, value=0.)
+    data_behind = pad_sequences(data.behind_tokenindex, maxlen=pad_seq_len, value=0.)
     labels = to_categorical(data.labels, nb_classes=2)
     return data_front, data_behind, labels
 
@@ -210,12 +210,13 @@ def plot_seq_len(data_file, data, percentage=0.98):
     :param data: The class Data (includes the data tokenindex and data labels)
     :param percentage: The percentage of the total data you want to show
     """
+    data_analysis_dir = '../data/data_analysis/'
     if 'train' in data_file.lower():
-        output_file = 'Train Sequence Length Distribution Histogram.png'
+        output_file = data_analysis_dir + 'Train Sequence Length Distribution Histogram.png'
     if 'validation' in data_file.lower():
-        output_file = 'Validation Sequence Length Distribution Histogram.png'
+        output_file = data_analysis_dir + 'Validation Sequence Length Distribution Histogram.png'
     if 'test' in data_file.lower():
-        output_file = 'Test Sequence Length Distribution Histogram.png'
+        output_file = data_analysis_dir + 'Test Sequence Length Distribution Histogram.png'
     result = dict()
     for x in (data.front_tokenindex + data.behind_tokenindex):
         if len(x) not in result.keys():
