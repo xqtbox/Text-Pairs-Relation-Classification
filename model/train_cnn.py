@@ -7,8 +7,8 @@ import time
 import datetime
 import logging
 import tensorflow as tf
-import data_helpers as dh
 
+from utils import data_helpers as dh
 from text_cnn import TextCNN
 from tensorboard.plugins import projector
 
@@ -30,14 +30,14 @@ while not (SUBSET.isdigit() and int(SUBSET) in range(1, 12)):
 logging.info('✔︎ The format of your input is legal, now loading to next step...')
 
 if TRAIN_OR_RESTORE == 'T':
-    logger = dh.logger_fn('tflog', 'training-{0}.log'.format(time.asctime()))
+    logger = dh.logger_fn('tflog', 'logs/training-{0}.log'.format(time.asctime()))
 if TRAIN_OR_RESTORE == 'R':
-    logger = dh.logger_fn('tflog', 'restore-{0}.log'.format(time.asctime()))
+    logger = dh.logger_fn('tflog', 'logs/restore-{0}.log'.format(time.asctime()))
 
-TRAININGSET_DIR = 'Model Training' + '/Model' + SUBSET + '_Training.json'
-VALIDATIONSET_DIR = 'Model Validation' + '/Model' + SUBSET + '_Validation.json'
-TESTSET_DIR = 'Model Test' + '/Model' + SUBSET + '_Test.json'
-METADATA_DIR = 'metadata.tsv'
+TRAININGSET_DIR = '../data/Model Training/Model' + SUBSET + '_Training.json'
+VALIDATIONSET_DIR = '../data/Model Validation/Model' + SUBSET + '_Validation.json'
+TESTSET_DIR = '../data/Model Test/Model' + SUBSET + '_Test.json'
+METADATA_DIR = '../data/metadata.tsv'
 
 # Data Parameters
 tf.flags.DEFINE_string("training_data_file", TRAININGSET_DIR, "Data source for the training data.")
