@@ -19,9 +19,19 @@ Research data may attract copyright protection under China law. Thus, there is o
 
 实验数据属于实验室与某公司的合作项目，涉及商业机密，在此不予提供，还望谅解。
 
-## Pre-trained Word Vectors
+## Data Preprocessing
 
-Use `gensim` package to pre-train my data.
+Depends on what your data and task are.
+
+### Text Segment
+
+You can use `jieba` package if you are going to deal with the chinese text data.
+
+### Pre-trained Word Vectors
+
+- Use `gensim` package to pre-train data.
+- Use `glove` tools to pre-train data.
+- Even can use a **fasttext** network to pre-train data.
 
 ## Network Structure
 
