@@ -2,7 +2,6 @@
 __author__ = 'Randolph'
 
 import tensorflow as tf
-from tensorflow.contrib.layers import batch_norm
 
 
 def linear(input_, output_size, scope=None):
@@ -34,7 +33,7 @@ def linear(input_, output_size, scope=None):
     return tf.nn.xw_plus_b(input_, tf.transpose(W), b)
 
 
-def highway(input_, size, num_layers=1, bias=-2.0, f=tf.nn.relu, scope='Highway', name="Highway"):
+def highway(input_, size, num_layers=1, bias=-2.0, f=tf.nn.relu, scope='Highway'):
     """
     Highway Network (cf. http://arxiv.org/abs/1505.00387).
     t = sigmoid(Wy + b)
@@ -115,8 +114,8 @@ class TextCNN(object):
                     name="conv_behind")
 
                 # Batch Normalization Layer
-                conv_bn_front = batch_norm(tf.nn.bias_add(conv_front, b), is_training=self.is_training)
-                conv_bn_behind = batch_norm(tf.nn.bias_add(conv_behind, b), is_training=self.is_training)
+                conv_bn_front = tf.layers.batch_normalization(tf.nn.bias_add(conv_front, b), training=self.is_training)
+                conv_bn_behind = tf.layers.batch_normalization(tf.nn.bias_add(conv_behind, b), training=self.is_training)
 
                 # Apply nonlinearity
                 conv_out_front = tf.nn.relu(conv_bn_front, name="relu_front")
@@ -157,13 +156,13 @@ class TextCNN(object):
             self.fc = tf.nn.xw_plus_b(self.pool_flat_combine, W, b)
 
             # Batch Normalization Layer
-            self.fc_bn = batch_norm(self.fc, is_training=self.is_training)
+            self.fc_bn = tf.layers.batch_normalization(self.fc, training=self.is_training)
 
             # Apply nonlinearity
             self.fc_out = tf.nn.relu(self.fc_bn, name="relu")
 
         # Highway Layer
-        self.highway = highway(self.fc_out, self.fc_out.get_shape()[1], num_layers=1, bias=0, name="Highway")
+        self.highway = highway(self.fc_out, self.fc_out.get_shape()[1], num_layers=1, bias=0, scope="Highway")
 
         # Add dropout
         with tf.name_scope("dropout"):

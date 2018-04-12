@@ -127,9 +127,10 @@ def train_cnn():
             # learning_rate = tf.train.exponential_decay(learning_rate=FLAGS.learning_rate, global_step=cnn.global_step,
             #                                            decay_steps=FLAGS.decay_steps, decay_rate=FLAGS.decay_rate,
             #                                            staircase=True)
-            optimizer = tf.train.AdamOptimizer(FLAGS.learning_rate)
-            grads_and_vars = optimizer.compute_gradients(cnn.loss)
-            train_op = optimizer.apply_gradients(grads_and_vars, global_step=cnn.global_step, name="train_op")
+            with tf.control_dependencies(tf.get_collection(tf.GraphKeys.UPDATE_OPS)):
+                optimizer = tf.train.AdamOptimizer(FLAGS.learning_rate)
+                grads_and_vars = optimizer.compute_gradients(cnn.loss)
+                train_op = optimizer.apply_gradients(grads_and_vars, global_step=cnn.global_step, name="train_op")
 
             # Keep track of gradient values and sparsity (optional)
             grad_summaries = []
