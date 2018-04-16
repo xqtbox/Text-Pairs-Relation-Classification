@@ -1,6 +1,7 @@
 # -*- coding:utf-8 -*-
 __author__ = 'Randolph'
 
+import os
 import sys
 import time
 import numpy as np
@@ -20,12 +21,12 @@ while not (SUBSET.isdigit() and int(SUBSET) in range(1, 12) and MODEL_LOG.isdigi
     SUBSET = input('✘ The format of your input is illegal, it should be like(11, 1490175368), please re-input: ')
 logger.info('✔︎ The format of your input is legal, now loading to next step...')
 
-SAVE_FILE = 'result' + SUBSET + '.txt'
 
 TRAININGSET_DIR = '../data/Model Training/Model' + SUBSET + '_Training.json'
 VALIDATIONSET_DIR = '../data/Model Validation/Model' + SUBSET + '_Validation.json'
 TESTSET_DIR = '../data/Model Test/Model' + SUBSET + '_Test.json'
 MODEL_DIR = 'runs/' + MODEL_LOG + '/checkpoints/'
+SAVE_DIR = 'results/' + MODEL_LOG
 
 # Data Parameters
 tf.flags.DEFINE_string("training_data_file", TRAININGSET_DIR, "Data source for the training data.")
@@ -95,9 +96,9 @@ def test_cnn():
             # Get the placeholders from the graph by name
             input_x_front = graph.get_operation_by_name("input_x_front").outputs[0]
             input_x_behind = graph.get_operation_by_name("input_x_behind").outputs[0]
-
             # input_y = graph.get_operation_by_name("input_y").outputs[0]
             dropout_keep_prob = graph.get_operation_by_name("dropout_keep_prob").outputs[0]
+            is_training = graph.get_operation_by_name("is_training").outputs[0]
 
             # pre-trained word2vec
             pretrained_embedding = graph.get_operation_by_name("embedding/embedding").outputs[0]
@@ -114,7 +115,7 @@ def test_cnn():
             # Save the .pb model file
             output_graph_def = tf.graph_util.convert_variables_to_constants(sess, sess.graph_def,
                                                                             output_node_names.split("|"))
-            tf.train.write_graph(output_graph_def, 'graph', 'graph.pb', as_text=False)
+            tf.train.write_graph(output_graph_def, 'graph', 'graph-cnn-{0}.pb'.format(MODEL_LOG), as_text=False)
 
             # Generate batches for one epoch
             batches = dh.batch_iter(list(zip(x_test_front, x_test_behind)), FLAGS.batch_size, 1, shuffle=False)
@@ -130,7 +131,8 @@ def test_cnn():
                 feed_dict = {
                     input_x_front: x_batch_front,
                     input_x_behind: x_batch_behind,
-                    dropout_keep_prob: 1.0
+                    dropout_keep_prob: 1.0,
+                    is_training: False
                 }
                 batch_scores = sess.run(scores, feed_dict)
                 all_scores = np.append(all_scores, batch_scores)
@@ -144,7 +146,8 @@ def test_cnn():
                 batch_topKPreds = sess.run(topKPreds, feed_dict)
                 all_topKPreds = np.append(all_topKPreds, batch_topKPreds)
 
-            np.savetxt(SAVE_FILE, list(zip(all_predictions, all_topKPreds)), fmt='%s')
+            os.makedirs(SAVE_DIR)
+            np.savetxt(SAVE_DIR + '/result_sub_' + SUBSET + '.txt', list(zip(all_predictions, all_topKPreds)), fmt='%s')
 
     logger.info("✔ Done.")
 
