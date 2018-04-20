@@ -109,7 +109,7 @@ def test_cnn():
             softmax_scores = graph.get_operation_by_name("output/SoftMax_scores").outputs[0]
             topKPreds = graph.get_operation_by_name("output/topKPreds").outputs[0]
             accuracy = graph.get_operation_by_name("accuracy/accuracy").outputs[0]
-            loss_value = graph.get_operation_by_name("loss/loss").outputs[0]
+            loss = graph.get_operation_by_name("loss/loss").outputs[0]
 
             # Split the output nodes name by '|' if you have several output nodes
             output_node_names = 'output/scores|output/predictions|output/SoftMax_scores|output/topKPreds'
@@ -149,10 +149,10 @@ def test_cnn():
                 batch_topKPreds = sess.run(topKPreds, feed_dict)
                 all_topKPreds = np.append(all_topKPreds, batch_topKPreds)
 
-                loss = sess.run(loss_value, feed_dict)
-                acc = sess.run(accuracy, feed_dict)
+                batch_loss = sess.run(loss, feed_dict)
+                batch_acc = sess.run(accuracy, feed_dict)
                 
-                logger.info("✔︎ Test batch {0}: loss {1:g}, accuracy {2:g}.".format((index + 1), loss, acc))
+                logger.info("✔︎ Test batch {0}: loss {1:g}, accuracy {2:g}.".format((index + 1), batch_loss, batch_acc))
 
             os.makedirs(SAVE_DIR)
             np.savetxt(SAVE_DIR + '/result_sub_' + SUBSET + '.txt', list(zip(all_predictions, all_topKPreds)), fmt='%s')
