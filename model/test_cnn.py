@@ -96,7 +96,7 @@ def test_cnn():
             # Get the placeholders from the graph by name
             input_x_front = graph.get_operation_by_name("input_x_front").outputs[0]
             input_x_behind = graph.get_operation_by_name("input_x_behind").outputs[0]
-            # input_y = graph.get_operation_by_name("input_y").outputs[0]
+            input_y = graph.get_operation_by_name("input_y").outputs[0]
             dropout_keep_prob = graph.get_operation_by_name("dropout_keep_prob").outputs[0]
             is_training = graph.get_operation_by_name("is_training").outputs[0]
 
@@ -108,6 +108,8 @@ def test_cnn():
             predictions = graph.get_operation_by_name("output/predictions").outputs[0]
             softmax_scores = graph.get_operation_by_name("output/SoftMax_scores").outputs[0]
             topKPreds = graph.get_operation_by_name("output/topKPreds").outputs[0]
+            accuracy = graph.get_operation_by_name("accuracy/accuracy").outputs[0]
+            loss_value = graph.get_operation_by_name("loss/loss").outputs[0]
 
             # Split the output nodes name by '|' if you have several output nodes
             output_node_names = 'output/scores|output/predictions|output/SoftMax_scores|output/topKPreds'
@@ -118,7 +120,7 @@ def test_cnn():
             tf.train.write_graph(output_graph_def, 'graph', 'graph-cnn-{0}.pb'.format(MODEL_LOG), as_text=False)
 
             # Generate batches for one epoch
-            batches = dh.batch_iter(list(zip(x_test_front, x_test_behind)), FLAGS.batch_size, 1, shuffle=False)
+            batches = dh.batch_iter(list(zip(x_test_front, x_test_behind, y_test)), FLAGS.batch_size, 1, shuffle=False)
 
             # Collect the predictions here
             all_scores = []
@@ -126,11 +128,12 @@ def test_cnn():
             all_predictions = []
             all_topKPreds = []
 
-            for x_test_batch in batches:
-                x_batch_front, x_batch_behind = zip(*x_test_batch)
+            for index, x_test_batch in enumerate(batches):
+                x_batch_front, x_batch_behind, y_batch = zip(*x_test_batch)
                 feed_dict = {
                     input_x_front: x_batch_front,
                     input_x_behind: x_batch_behind,
+                    input_y: y_batch,
                     dropout_keep_prob: 1.0,
                     is_training: False
                 }
@@ -145,6 +148,11 @@ def test_cnn():
 
                 batch_topKPreds = sess.run(topKPreds, feed_dict)
                 all_topKPreds = np.append(all_topKPreds, batch_topKPreds)
+
+                loss = sess.run(loss_value, feed_dict)
+                acc = sess.run(accuracy, feed_dict)
+                
+                logger.info("✔︎ Test batch {0}: loss {1:g}, accuracy {2:g}.".format((index + 1), loss, acc))
 
             os.makedirs(SAVE_DIR)
             np.savetxt(SAVE_DIR + '/result_sub_' + SUBSET + '.txt', list(zip(all_predictions, all_topKPreds)), fmt='%s')
