@@ -245,6 +245,8 @@ def train_cnn():
             batches = dh.batch_iter(
                 list(zip(x_train_front, x_train_behind, y_train)), FLAGS.batch_size, FLAGS.num_epochs)
 
+            num_batches_per_epoch = int((len(x_train_front) - 1) / FLAGS.batch_size) + 1
+
             # Training loop. For each batch...
             for batch in batches:
                 x_batch_front, x_batch_behind, y_batch = zip(*batch)
@@ -260,6 +262,11 @@ def train_cnn():
                     checkpoint_prefix = os.path.join(checkpoint_dir, "model")
                     path = saver.save(sess, checkpoint_prefix, global_step=current_step)
                     logger.info("✔︎ Saved model checkpoint to {0}\n".format(path))
+
+                if current_step % num_batches_per_epoch == 0:
+                    time_str = datetime.datetime.now().isoformat()
+                    current_epoch = current_step // num_batches_per_epoch
+                    logger.info("{0}: ✔︎ Epoch {1} has finished!".format(time_str, current_epoch))
 
     logger.info("✔︎ Done.")
 
