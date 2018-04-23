@@ -1,10 +1,8 @@
-# Convolutional Neural Networks for Text Pairs Classification
+# Deep Learning for Text Pairs Classification
 
 This project is used by my bachelor graduation project, and it is also a study of TensorFlow, Deep Learning(CNN, RNN, LSTM, etc.).
 
-The main objective of the project is to determine whether the two sentences are similar in sentence meaning (binary classification problems) by the two given sentences based on Convolutional Neural Networks.
-
-The project refer to [dennybritz/cnn-text-classification-tf](https://github.com/dennybritz/cnn-text-classification-tf), make the data helper supports Chinese language (Task required) and modified the network structure (Based on my task).
+The main objective of the project is to determine whether the two sentences are similar in sentence meaning (binary classification problems) by the two given sentences based on Neural Networks (Fasttext, CNN, LSTM, etc.).
 
 ## Requirements
 
@@ -18,24 +16,6 @@ The project refer to [dennybritz/cnn-text-classification-tf](https://github.com/
 Research data may attract copyright protection under China law. Thus, there is only code.
 
 实验数据属于实验室与某公司的合作项目，涉及商业机密，在此不予提供，还望谅解。
-
-## Data Preprocessing
-
-Depends on what your data and task are.
-
-### Text Segment
-
-You can use `jieba` package if you are going to deal with the chinese text data.
-
-### Pre-trained Word Vectors
-
-- Use `gensim` package to pre-train data.
-- Use `glove` tools to pre-train data.
-- Even can use a **fasttext** network to pre-train data.
-
-## Network Structure
-
-![](https://farm1.staticflickr.com/650/33049175050_080d4de7ff_o.jpg)
 
 ## Innovation
 
@@ -55,10 +35,65 @@ You can use `jieba` package if you are going to deal with the chinese text data.
 3. Add other useful data preprocess functions in `data_helpers.py`.
 4. Use `logging` for helping recording the whole info(including parameters display, model training info, etc.).
 
-## References
+## Data Preprocessing
+
+Depends on what your data and task are.
+
+### Text Segment
+
+You can use `jieba` package if you are going to deal with the chinese text data.
+
+### Pre-trained Word Vectors
+
+- Use `gensim` package to pre-train data.
+- Use `glove` tools to pre-train data.
+- Even can use a **fasttext** network to pre-train data.
+
+## Network Structure
+
+### FastText
+
+**Warning: Not finished yet 🤪!**
+
+![]()
+
+References:
+
+- [Bag of Tricks for Efficient Text Classification](https://arxiv.org/pdf/1607.01759.pdf)
+
+---
+
+### TextANN
+
+**Warning: Not finished yet 🤪!**
+
+![]()
+
+---
+
+
+### TextCNN
+
+![](https://farm1.staticflickr.com/650/33049175050_080d4de7ff_o.jpg)
+
+References:
 
 - [Convolutional Neural Networks for Sentence Classification](http://arxiv.org/abs/1408.5882)
 - [A Sensitivity Analysis of (and Practitioners' Guide to) Convolutional Neural Networks for Sentence Classification](http://arxiv.org/abs/1510.03820)
+
+---
+
+### TextRNN
+
+**Warning: Not finished yet 🤪!**
+
+![]()
+
+References:
+
+- [Recurrent Neural Network for Text Classification with Multi-Task Learning](http://www.aaai.org/ocs/index.php/AAAI/AAAI15/paper/download/9745/9552)
+
+---
 
 ## About Me
 
