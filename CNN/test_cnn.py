@@ -13,20 +13,17 @@ from utils import data_helpers as dh
 
 logger = dh.logger_fn('tflog', 'logs/test-{0}.log'.format(time.asctime()))
 
-user_input = input("☛ Please input the subset and the model file you want to test, it should be like(11, 1490175368): ")
-SUBSET = user_input.split(',')[0]
-MODEL_LOG = user_input.split(',')[1][1:]
+MODEL = input("☛ Please input the model file you want to test, it should be like(1490175368): ")
 
-while not (SUBSET.isdigit() and int(SUBSET) in range(1, 12) and MODEL_LOG.isdigit() and len(MODEL_LOG) == 10):
-    SUBSET = input('✘ The format of your input is illegal, it should be like(11, 1490175368), please re-input: ')
+while not (MODEL.isdigit() and len(MODEL) == 10):
+    MODEL = input('✘ The format of your input is illegal, it should be like(1490175368), please re-input: ')
 logger.info('✔︎ The format of your input is legal, now loading to next step...')
 
-
-TRAININGSET_DIR = '../data/Model Training/Model' + SUBSET + '_Training.json'
-VALIDATIONSET_DIR = '../data/Model Validation/Model' + SUBSET + '_Validation.json'
-TESTSET_DIR = '../data/Model Test/Model' + SUBSET + '_Test.json'
-MODEL_DIR = 'runs/' + MODEL_LOG + '/checkpoints/'
-SAVE_DIR = 'results/' + MODEL_LOG
+TRAININGSET_DIR = '../data/Train.json'
+VALIDATIONSET_DIR = '../data/Validation.json'
+TESTSET_DIR = '../data/Test.json'
+MODEL_DIR = 'runs/' + MODEL + '/checkpoints/'
+SAVE_DIR = 'results/' + MODEL
 
 # Data Parameters
 tf.flags.DEFINE_string("training_data_file", TRAININGSET_DIR, "Data source for the training data.")
@@ -72,10 +69,6 @@ def test_cnn():
     logger.info('✔︎ Test data padding...')
     x_test_front, x_test_behind, y_test = dh.pad_data(test_data, FLAGS.pad_seq_len)
 
-    # Build vocabulary
-    VOCAB_SIZE = dh.load_vocab_size(FLAGS.embedding_dim)
-    pretrained_word2vec_matrix = dh.load_word2vec_matrix(VOCAB_SIZE, FLAGS.embedding_dim)
-
     # Load cnn model
     logger.info("✔ Loading model...")
     checkpoint_file = tf.train.latest_checkpoint(FLAGS.checkpoint_dir)
@@ -100,33 +93,26 @@ def test_cnn():
             dropout_keep_prob = graph.get_operation_by_name("dropout_keep_prob").outputs[0]
             is_training = graph.get_operation_by_name("is_training").outputs[0]
 
-            # pre-trained word2vec
-            pretrained_embedding = graph.get_operation_by_name("embedding/embedding").outputs[0]
-
             # Tensors we want to evaluate
-            scores = graph.get_operation_by_name("output/scores").outputs
             predictions = graph.get_operation_by_name("output/predictions").outputs[0]
-            softmax_scores = graph.get_operation_by_name("output/SoftMax_scores").outputs[0]
             topKPreds = graph.get_operation_by_name("output/topKPreds").outputs[0]
             accuracy = graph.get_operation_by_name("accuracy/accuracy").outputs[0]
             loss = graph.get_operation_by_name("loss/loss").outputs[0]
 
             # Split the output nodes name by '|' if you have several output nodes
-            output_node_names = 'output/scores|output/predictions|output/SoftMax_scores|output/topKPreds'
+            output_node_names = 'output/logits|output/predictions|output/softmax_scores|output/topKPreds'
 
             # Save the .pb model file
             output_graph_def = tf.graph_util.convert_variables_to_constants(sess, sess.graph_def,
                                                                             output_node_names.split("|"))
-            tf.train.write_graph(output_graph_def, 'graph', 'graph-cnn-{0}.pb'.format(MODEL_LOG), as_text=False)
+            tf.train.write_graph(output_graph_def, 'graph', 'graph-cnn-{0}.pb'.format(MODEL), as_text=False)
 
             # Generate batches for one epoch
             batches = dh.batch_iter(list(zip(x_test_front, x_test_behind, y_test)), FLAGS.batch_size, 1, shuffle=False)
 
             # Collect the predictions here
-            all_scores = []
-            all_softmax_scores = []
-            all_predictions = []
-            all_topKPreds = []
+            all_predicted_labels = []
+            all_predicted_values = []
 
             for index, x_test_batch in enumerate(batches):
                 x_batch_front, x_batch_behind, y_batch = zip(*x_test_batch)
@@ -137,25 +123,24 @@ def test_cnn():
                     dropout_keep_prob: 1.0,
                     is_training: False
                 }
-                batch_scores = sess.run(scores, feed_dict)
-                all_scores = np.append(all_scores, batch_scores)
 
-                batch_softmax_scores = sess.run(softmax_scores, feed_dict)
-                all_softmax_scores = np.append(all_softmax_scores, batch_softmax_scores)
+                batch_predicted_labels = sess.run(predictions, feed_dict)
+                all_predicted_labels = np.concatenate([all_predicted_labels, batch_predicted_labels])
 
-                batch_predictions = sess.run(predictions, feed_dict)
-                all_predictions = np.concatenate([all_predictions, batch_predictions])
-
-                batch_topKPreds = sess.run(topKPreds, feed_dict)
-                all_topKPreds = np.append(all_topKPreds, batch_topKPreds)
+                batch_predicted_values = sess.run(topKPreds, feed_dict)
+                all_predicted_values = np.append(all_predicted_values, batch_predicted_values)
 
                 batch_loss = sess.run(loss, feed_dict)
                 batch_acc = sess.run(accuracy, feed_dict)
                 
                 logger.info("✔︎ Test batch {0}: loss {1:g}, accuracy {2:g}.".format((index + 1), batch_loss, batch_acc))
 
-            os.makedirs(SAVE_DIR)
-            np.savetxt(SAVE_DIR + '/result_sub_' + SUBSET + '.txt', list(zip(all_predictions, all_topKPreds)), fmt='%s')
+            # Save the prediction result
+            if not os.path.exists(SAVE_DIR):
+                os.makedirs(SAVE_DIR)
+            dh.create_prediction_file(file=SAVE_DIR + '/predictions.json', front_data_id=test_data.front_testid,
+                                      behind_data_id=test_data.behind_testid, all_predict_labels=all_predicted_labels,
+                                      all_predict_values=all_predicted_values)
 
     logger.info("✔ Done.")
 
