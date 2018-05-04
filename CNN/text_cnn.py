@@ -8,7 +8,7 @@ def linear(input_, output_size, scope=None):
     """
     Linear map: output[k] = sum_i(Matrix[k, i] * args[i] ) + Bias[k]
     Args:
-        args: a tensor or a list of 2D, batch x n, Tensors.
+        input_: a tensor or a list of 2D, batch x n, Tensors.
         output_size: int, second dimension of W[i].
         scope: VariableScope for the created subgraph; defaults to "Linear".
     Returns:
@@ -58,7 +58,7 @@ class TextCNN(object):
             self, sequence_length, num_classes, vocab_size, fc_hidden_size, embedding_size,
             embedding_type, filter_sizes, num_filters, l2_reg_lambda=0.0, pretrained_embedding=None):
 
-        # Placeholders for input, output and dropout
+        # Placeholders for input, output, dropout_prob and training_tag
         self.input_x_front = tf.placeholder(tf.int32, [None, sequence_length], name="input_x_front")
         self.input_x_behind = tf.placeholder(tf.int32, [None, sequence_length], name="input_x_behind")
         self.input_y = tf.placeholder(tf.float32, [None, num_classes], name="input_y")
@@ -67,23 +67,19 @@ class TextCNN(object):
 
         self.global_step = tf.Variable(0, trainable=False, name="Global_Step")
 
-        # Keeping track of l2 regularization loss (optional)
-        l2_loss = tf.constant(0.0)
-
-        # Embedding layer
+        # Embedding Layer
         with tf.device('/cpu:0'), tf.name_scope("embedding"):
             # Use random generated the word vector by default
             # Can also be obtained through our own word vectors trained by our corpus
             if pretrained_embedding is None:
-                self.embedding = tf.Variable(tf.random_uniform([vocab_size, embedding_size], -1.0, 1.0),
-                                             name="embedding")
+                self.embedding = tf.Variable(tf.random_uniform([vocab_size, embedding_size], -1.0, 1.0,
+                                                               dtype=tf.float32), trainable=True, name="embedding")
             else:
                 if embedding_type == 0:
-                    self.embedding = tf.constant(pretrained_embedding, name="embedding")
-                    self.embedding = tf.cast(self.embedding, tf.float32)
+                    self.embedding = tf.constant(pretrained_embedding, dtype=tf.float32, name="embedding")
                 if embedding_type == 1:
-                    self.embedding = tf.Variable(pretrained_embedding, name="embedding", trainable=True)
-                    self.embedding = tf.cast(self.embedding, tf.float32)
+                    self.embedding = tf.Variable(pretrained_embedding, trainable=True,
+                                                 dtype=tf.float32, name="embedding")
             self.embedded_sentence_front = tf.nn.embedding_lookup(self.embedding, self.input_x_front)
             self.embedded_sentence_behind = tf.nn.embedding_lookup(self.embedding, self.input_x_behind)
             self.embedded_sentence_expanded_front = tf.expand_dims(self.embedded_sentence_front, -1)
@@ -97,8 +93,8 @@ class TextCNN(object):
             with tf.name_scope("conv-filter{0}".format(filter_size)):
                 # Convolution Layer
                 filter_shape = [filter_size, embedding_size, 1, num_filters]
-                W = tf.Variable(tf.truncated_normal(shape=filter_shape, stddev=0.1), name="W")
-                b = tf.Variable(tf.constant(0.1, shape=[num_filters]), dtype=tf.float32, name="b")
+                W = tf.Variable(tf.truncated_normal(shape=filter_shape, stddev=0.1, dtype=tf.float32), name="W")
+                b = tf.Variable(tf.constant(0.1, shape=[num_filters], dtype=tf.float32), name="b")
                 conv_front = tf.nn.conv2d(
                     self.embedded_sentence_expanded_front,
                     W,
@@ -151,8 +147,9 @@ class TextCNN(object):
 
         # Fully Connected Layer
         with tf.name_scope("fc"):
-            W = tf.Variable(tf.truncated_normal(shape=[num_filters_total * 2, fc_hidden_size], stddev=0.1), name="W")
-            b = tf.Variable(tf.constant(0.1, shape=[fc_hidden_size]), dtype=tf.float32, name="b")
+            W = tf.Variable(tf.truncated_normal(shape=[num_filters_total * 2, fc_hidden_size],
+                                                stddev=0.1, dtype=tf.float32), name="W")
+            b = tf.Variable(tf.constant(0.1, shape=[fc_hidden_size], dtype=tf.float32), name="b")
             self.fc = tf.nn.xw_plus_b(self.pool_flat_combine, W, b)
 
             # Batch Normalization Layer
@@ -170,19 +167,21 @@ class TextCNN(object):
 
         # Final scores and predictions
         with tf.name_scope("output"):
-            W = tf.Variable(tf.truncated_normal(shape=[fc_hidden_size, num_classes], stddev=0.1), name="W")
-            b = tf.Variable(tf.constant(0.1, shape=[num_classes]), dtype=tf.float32, name="b")
-            l2_loss += tf.nn.l2_loss(W)
-            l2_loss += tf.nn.l2_loss(b)
-            self.scores = tf.nn.xw_plus_b(self.h_drop, W, b, name="scores")
-            self.softmax_scores = tf.nn.softmax(self.scores, name="SoftMax_scores")
-            self.predictions = tf.argmax(self.scores, 1, name="predictions")
+            W = tf.Variable(tf.truncated_normal(shape=[fc_hidden_size, num_classes],
+                                                stddev=0.1, dtype=tf.float32), name="W")
+            b = tf.Variable(tf.constant(0.1, shape=[num_classes], dtype=tf.float32), name="b")
+            self.logits = tf.nn.xw_plus_b(self.h_drop, W, b, name="logits")
+            self.softmax_scores = tf.nn.softmax(self.logits, name="softmax_scores")
+            self.predictions = tf.argmax(self.logits, 1, name="predictions")
             self.topKPreds = tf.nn.top_k(self.softmax_scores, k=1, sorted=True, name="topKPreds")
 
-        # Calculate mean cross-entropy loss
+        # Calculate mean cross-entropy loss, L2 loss
         with tf.name_scope("loss"):
-            losses = tf.nn.softmax_cross_entropy_with_logits_v2(labels=self.input_y, logits=self.scores)
-            self.loss = tf.reduce_mean(losses, name="loss") + l2_reg_lambda * l2_loss
+            losses = tf.nn.softmax_cross_entropy_with_logits_v2(labels=self.input_y, logits=self.logits)
+            losses = tf.reduce_mean(losses, name="softmax_losses")
+            l2_losses = tf.add_n([tf.nn.l2_loss(tf.cast(v, tf.float32)) for v in tf.trainable_variables()],
+                                 name="l2_losses") * l2_reg_lambda
+            self.loss = tf.add(losses, l2_losses, name="loss")
 
         # Accuracy
         with tf.name_scope("accuracy"):
