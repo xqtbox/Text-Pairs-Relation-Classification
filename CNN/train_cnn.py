@@ -4,7 +4,6 @@ __author__ = 'Randolph'
 import os
 import sys
 import time
-import datetime
 import logging
 import tensorflow as tf
 
@@ -23,26 +22,18 @@ logging.info('✔︎ The format of your input is legal, now loading to next step
 
 TRAIN_OR_RESTORE = TRAIN_OR_RESTORE.upper()
 
-SUBSET = input("☛ Please input the subset number you want to train or restore: ")  # The Subset you want to train & test
-
-while not (SUBSET.isdigit() and int(SUBSET) in range(1, 12)):
-    SUBSET = input('✘ The format of your input is illegal(should be the integer), please re-input: ')
-logging.info('✔︎ The format of your input is legal, now loading to next step...')
-
 if TRAIN_OR_RESTORE == 'T':
     logger = dh.logger_fn('tflog', 'logs/training-{0}.log'.format(time.asctime()))
 if TRAIN_OR_RESTORE == 'R':
     logger = dh.logger_fn('tflog', 'logs/restore-{0}.log'.format(time.asctime()))
 
-TRAININGSET_DIR = '../data/Model Training/Model' + SUBSET + '_Training.json'
-VALIDATIONSET_DIR = '../data/Model Validation/Model' + SUBSET + '_Validation.json'
-TESTSET_DIR = '../data/Model Test/Model' + SUBSET + '_Test.json'
+TRAININGSET_DIR = '../data/Train.json'
+VALIDATIONSET_DIR = '../data/Validation.json'
 METADATA_DIR = '../data/metadata.tsv'
 
 # Data Parameters
 tf.flags.DEFINE_string("training_data_file", TRAININGSET_DIR, "Data source for the training data.")
 tf.flags.DEFINE_string("validation_data_file", VALIDATIONSET_DIR, "Data source for the validation data.")
-tf.flags.DEFINE_string("test_data_file", TESTSET_DIR, "Data source for the test data.")
 tf.flags.DEFINE_string("metadata_file", METADATA_DIR, "Metadata file for embedding visualization"
                                                       "(Each line is a word segment in metadata_file).")
 tf.flags.DEFINE_string("train_or_restore", TRAIN_OR_RESTORE, "Train or Restore.")
@@ -62,6 +53,7 @@ tf.flags.DEFINE_float("l2_reg_lambda", 0.0, "L2 regularization lambda (default: 
 tf.flags.DEFINE_integer("batch_size", 64, "Batch Size (default: 64)")
 tf.flags.DEFINE_integer("num_epochs", 200, "Number of training epochs (default: 200)")
 tf.flags.DEFINE_integer("evaluate_every", 2000, "Evaluate model on dev set after this many steps (default: 100)")
+tf.flags.DEFINE_float("norm_ratio", 2, "The ratio of the sum of gradients norms of trainable variable (default: 1.25)")
 tf.flags.DEFINE_integer("decay_steps", 5000, "how many steps before decay learning rate.")
 tf.flags.DEFINE_float("decay_rate", 0.5, "Rate of decay for learning rate.")
 tf.flags.DEFINE_integer("checkpoint_every", 500, "Save model after this many steps (default: 100)")
@@ -129,12 +121,13 @@ def train_cnn():
             #                                            staircase=True)
             with tf.control_dependencies(tf.get_collection(tf.GraphKeys.UPDATE_OPS)):
                 optimizer = tf.train.AdamOptimizer(FLAGS.learning_rate)
-                grads_and_vars = optimizer.compute_gradients(cnn.loss)
-                train_op = optimizer.apply_gradients(grads_and_vars, global_step=cnn.global_step, name="train_op")
+                grads, vars = zip(*optimizer.compute_gradients(cnn.loss))
+                grads, _ = tf.clip_by_global_norm(grads, clip_norm=FLAGS.norm_ratio)
+                train_op = optimizer.apply_gradients(zip(grads, vars), global_step=cnn.global_step, name="train_op")
 
             # Keep track of gradient values and sparsity (optional)
             grad_summaries = []
-            for g, v in grads_and_vars:
+            for g, v in zip(grads, vars):
                 if g is not None:
                     grad_hist_summary = tf.summary.histogram("{0}/grad/hist".format(v.name), g)
                     sparsity_summary = tf.summary.scalar("{0}/grad/sparsity".format(v.name), tf.nn.zero_fraction(g))
@@ -217,8 +210,7 @@ def train_cnn():
                 }
                 _, step, summaries, loss, accuracy = sess.run(
                     [train_op, cnn.global_step, train_summary_op, cnn.loss, cnn.accuracy], feed_dict)
-                time_str = datetime.datetime.now().isoformat()
-                logger.info("{0}: step {1}, loss {2:g}, acc {3:g}".format(time_str, step, loss, accuracy))
+                logger.info("step {0}: loss {1:g}, acc {2:g}".format(step, loss, accuracy))
                 train_summary_writer.add_summary(summaries, step)
 
             def validation_step(x_batch_front, x_batch_behind, y_batch, writer=None):
@@ -230,14 +222,11 @@ def train_cnn():
                     cnn.dropout_keep_prob: 1.0,
                     cnn.is_training: False
                 }
-                step, summaries, scores, predictions, num_correct, \
-                loss, accuracy, recall, precision, f1, auc, topKPreds, = sess.run(
-                    [cnn.global_step, validation_summary_op, cnn.scores, cnn.predictions, cnn.num_correct,
-                     cnn.loss, cnn.accuracy, cnn.recall, cnn.precision, cnn.F1, cnn.AUC, cnn.topKPreds], feed_dict)
-                time_str = datetime.datetime.now().isoformat()
-                logger.info("{0}: step {1}, loss {2:g}, acc {3:g}, "
-                            "recall {4:g}, precision {5:g}, f1 {6:g}, AUC {7}"
-                            .format(time_str, step, loss, accuracy, recall, precision, f1, auc))
+                step, summaries, loss, accuracy, recall, precision, f1, auc = sess.run(
+                    [cnn.global_step, validation_summary_op, cnn.loss, cnn.accuracy,
+                     cnn.recall, cnn.precision, cnn.F1, cnn.AUC], feed_dict)
+                logger.info("step {0}: loss {1:g}, acc {2:g}, recall {3:g}, precision {4:g}, f1 {5:g}, AUC {6}"
+                            .format(step, loss, accuracy, recall, precision, f1, auc))
                 if writer:
                     writer.add_summary(summaries, step)
 
@@ -257,16 +246,13 @@ def train_cnn():
                     logger.info("\nEvaluation:")
                     validation_step(x_validation_front, x_validation_behind, y_validation,
                                     writer=validation_summary_writer)
-
                 if current_step % FLAGS.checkpoint_every == 0:
                     checkpoint_prefix = os.path.join(checkpoint_dir, "model")
                     path = saver.save(sess, checkpoint_prefix, global_step=current_step)
                     logger.info("✔︎ Saved model checkpoint to {0}\n".format(path))
-
                 if current_step % num_batches_per_epoch == 0:
-                    time_str = datetime.datetime.now().isoformat()
                     current_epoch = current_step // num_batches_per_epoch
-                    logger.info("{0}: ✔︎ Epoch {1} has finished!".format(time_str, current_epoch))
+                    logger.info("✔︎ Epoch {0} has finished!".format(current_epoch))
 
     logger.info("✔︎ Done.")
 
