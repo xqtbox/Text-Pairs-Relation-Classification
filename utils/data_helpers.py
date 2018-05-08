@@ -16,36 +16,37 @@ TEXT_DIR = '../data/content.txt'
 METADATA_DIR = '../data/metadata.tsv'
 
 
-def logger_fn(name, file, level=logging.INFO):
+def logger_fn(name, input_file, level=logging.INFO):
     tf_logger = logging.getLogger(name)
     tf_logger.setLevel(level)
-    log_dir = os.path.dirname(file)
+    log_dir = os.path.dirname(input_file)
     if not os.path.exists(log_dir):
         os.makedirs(log_dir)
-    fh = logging.FileHandler(file, mode='w')
+    fh = logging.FileHandler(input_file, mode='w')
     formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
     fh.setFormatter(formatter)
     tf_logger.addHandler(fh)
     return tf_logger
 
 
-def create_prediction_file(file, front_data_id, behind_data_id, all_predict_labels, all_predict_values):
+def create_prediction_file(output_file, front_data_id, behind_data_id, all_predict_labels, all_predict_values):
     """
     Create the prediction file.
 
     Args:
-        file: The all classes predicted scores provided by network
-        data_id: The data record id info provided by class Data
+        output_file: The all classes predicted scores provided by network
+        front_data_id: The front data record id info provided by class Data
+        behind_data_id: The behind data record id info provided by class Data
         all_predict_labels: The all predict labels by threshold
         all_predict_values: The all predict values by threshold
     Raises:
         IOError: If the prediction file is not a .json file
     """
     # TODO
-    if not file.endswith('.json'):
+    if not output_file.endswith('.json'):
         raise IOError("✘ The prediction file is not a json file."
                       "Please make sure the prediction data is a json file.")
-    with open(file, 'w') as fout:
+    with open(output_file, 'w') as fout:
         all_predict_labels = all_predict_labels.tolist()
         all_predict_values = all_predict_values.tolist()
 
@@ -55,6 +56,7 @@ def create_prediction_file(file, front_data_id, behind_data_id, all_predict_labe
             predict_labels = int(all_predict_labels[i])
             predict_values = round(all_predict_values[i], 4)
             data_record = {
+                'front_testid': front_data_id[i],
                 'behind_testid': behind_data_id[i],
                 'predict_labels': predict_labels,
                 'predict_values': predict_values
@@ -85,7 +87,7 @@ def create_metadata_file(embedding_size, output_file=METADATA_DIR):
     with open(output_file, 'w+') as fout:
         for word in word2idx_sorted:
             if word[0] is None:
-                logging.info("Empty Line, should replaced by any thing else, or will cause a bug of tensorboard")
+                print("Empty Line, should replaced by any thing else, or will cause a bug of tensorboard")
                 fout.write('<Empty Line>' + '\n')
             else:
                 fout.write(word[0] + '\n')
@@ -147,10 +149,10 @@ def data_word2vec(input_file, word2vec_model):
     def token_to_index(content):
         result = []
         for item in content:
-            id = vocab.get(item)
-            if id is None:
-                id = 0
-            result.append(id)
+            word2id = vocab.get(item)
+            if word2id is None:
+                word2id = 0
+            result.append(word2id)
         return result
 
     if not input_file.endswith('.json'):
@@ -162,14 +164,15 @@ def data_word2vec(input_file, word2vec_model):
         behind_testid = []
         front_content_indexlist = []
         behind_content_indexlist = []
-        for index, eachline in enumerate(fin):
+        total_line = 0
+        for eachline in fin:
             data = json.loads(eachline)
             front_testid.append(data['front_testid'])
             behind_testid.append(data['behind_testid'])
             labels.append(data['label'])
             front_content_indexlist.append(token_to_index(data['front_features']))
             behind_content_indexlist.append(token_to_index(data['behind_features']))
-        total_line = index + 1
+            total_line += 1
 
     class Data:
         def __init__(self):
@@ -223,7 +226,7 @@ def load_word2vec_matrix(vocab_size, embedding_size):
     vocab = dict([(k, v.index) for k, v in model.wv.vocab.items()])
     vector = np.zeros([vocab_size, embedding_size])
     for key, value in vocab.items():
-        if len(key) > 0:
+        if key is not None:
             vector[value] = model[key]
     return vector
 
@@ -252,7 +255,7 @@ def load_data_and_labels(data_file, embedding_size):
 
     # plot_seq_len(data_file, data)
 
-    logging.info('Found {0} texts.'.format(data.number))
+    # print('Found {0} texts.'.format(data.number))
 
     return data
 
@@ -311,9 +314,9 @@ def plot_seq_len(data_file, data, percentage=0.98):
         count += item[1]
         if (count / 2) > data.number * percentage:
             border_index.append(item[0])
-    avg = avg / (2 * data.number)
-    logging.info('The average of the data sequence length is {0}'.format(avg))
-    logging.info('The recommend of padding sequence length should more than {0}'.format(border_index[0]))
+    avg = avg / data.number
+    print('The average of the data sequence length is {0}'.format(avg))
+    print('The recommend of padding sequence length should more than {0}'.format(border_index[0]))
     xlim(0, 200)
     plt.bar(x, y)
     plt.savefig(output_file)
