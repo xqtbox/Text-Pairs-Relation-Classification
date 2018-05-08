@@ -1,4 +1,4 @@
-# Deep Learning for Text Pairs Classification
+# Deep Learning for Text Pairs Relation Classification
 
 This project is used by my bachelor graduation project, and it is also a study of TensorFlow, Deep Learning(CNN, RNN, LSTM, etc.).
 
@@ -7,7 +7,7 @@ The main objective of the project is to determine whether the two sentences are 
 ## Requirements
 
 - Python 3.6
-- Tensorflow 1.7 +
+- Tensorflow 1.8 +
 - Numpy
 - Gensim
 
@@ -26,12 +26,16 @@ Research data may attract copyright protection under China law. Thus, there is o
 
 ### Model part
 1. Deign **two subnetworks** to solve the task --- Text Pairs Similarity Classification.
-2. Add a new **Highway Layer**.(Which is useful based on the performance)
-3. Add several performance measures(especially the **AUC**) since the data is imbalanced.
+2. Add the correct **L2 loss** calculation operation.
+3. Add **gradients clip** operation to prevent gradient explosion.
+4. Add **learning rate decay** with exponential decay.
+5. Add a new **Highway Layer**.(Which is useful based on the performance)
+6. Add **Batch Normalization Layer**.
+7. Add several performance measures(especially the **AUC**) since the data is imbalanced.
 
 ### Code part
-1. Can choose to **train** the model directly or **restore** the model from checkpoint in `train_cnn.py`.  
-2. Add `test_cnn.py`, the **model test code**. 
+1. Can choose to **train** the model directly or **restore** the model from checkpoint in `train.py`.  
+2. Add `test.py`, the **model test code**,  it can show the predict value of label of the data in Testset when create the final prediction file.
 3. Add other useful data preprocess functions in `data_helpers.py`.
 4. Use `logging` for helping recording the whole info(including parameters display, model training info, etc.).
 
