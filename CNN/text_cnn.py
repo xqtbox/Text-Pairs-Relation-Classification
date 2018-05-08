@@ -89,7 +89,7 @@ class TextCNN(object):
         pooled_outputs_front = []
         pooled_outputs_behind = []
 
-        for i, filter_size in enumerate(filter_sizes):
+        for filter_size in filter_sizes:
             with tf.name_scope("conv-filter{0}".format(filter_size)):
                 # Convolution Layer
                 filter_shape = [filter_size, embedding_size, 1, num_filters]

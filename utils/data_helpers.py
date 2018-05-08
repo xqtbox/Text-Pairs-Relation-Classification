@@ -49,12 +49,13 @@ def create_prediction_file(file, front_data_id, behind_data_id, all_predict_labe
         all_predict_labels = all_predict_labels.tolist()
         all_predict_values = all_predict_values.tolist()
 
-        for index in range(len(all_predict_labels)):
-            predict_labels = int(all_predict_labels[index])
-            predict_values = round(all_predict_values[index], 4)
+        data_size = len(all_predict_labels)
+
+        for i in range(data_size):
+            predict_labels = int(all_predict_labels[i])
+            predict_values = round(all_predict_values[i], 4)
             data_record = {
-                'front_testid': front_data_id[index],
-                'behind_testid': behind_data_id[index],
+                'behind_testid': behind_data_id[i],
                 'predict_labels': predict_labels,
                 'predict_values': predict_values
             }

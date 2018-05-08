@@ -132,7 +132,6 @@ def test_cnn():
 
                 batch_loss = sess.run(loss, feed_dict)
                 batch_acc = sess.run(accuracy, feed_dict)
-                
                 logger.info("✔︎ Test batch {0}: loss {1:g}, accuracy {2:g}.".format((index + 1), batch_loss, batch_acc))
 
             # Save the prediction result
