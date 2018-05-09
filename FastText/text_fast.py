@@ -100,7 +100,7 @@ class TextFAST(object):
 
         # Final scores and predictions
         with tf.name_scope("output"):
-            W = tf.Variable(tf.truncated_normal(shape=[embedding_size*2, num_classes],
+            W = tf.Variable(tf.truncated_normal(shape=[embedding_size * 2, num_classes],
                                                 stddev=0.1, dtype=tf.float32), name="W")
             b = tf.Variable(tf.constant(0.1, shape=[num_classes], dtype=tf.float32), name="b")
             self.logits = tf.nn.xw_plus_b(self.h_drop, W, b, name="logits")
