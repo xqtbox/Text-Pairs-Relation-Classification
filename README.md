@@ -57,7 +57,7 @@ You can use `jieba` package if you are going to deal with the chinese text data.
 
 ### FastText
 
-**Warning: Not finished yet 🤪!**
+
 
 ![]()
 
@@ -69,7 +69,7 @@ References:
 
 ### TextANN
 
-**Warning: Not finished yet 🤪!**
+
 
 ![]()
 
@@ -89,7 +89,7 @@ References:
 
 ### TextRNN
 
-**Warning: Not finished yet 🤪!**
+
 
 ![]()
 
