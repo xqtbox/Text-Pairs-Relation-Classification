@@ -157,6 +157,12 @@ class TextRNN(object):
             correct = tf.equal(self.predictions, tf.argmax(self.input_y, 1))
             self.num_correct = tf.reduce_sum(tf.cast(correct, "float"), name="num_correct")
 
+        # Calculate Tp
+        with tf.name_scope("tp"):
+            tp = tf.metrics.true_positives(labels=tf.argmax(self.input_y, 1), predictions=self.predictions)
+            self.tp = tf.reduce_sum(tf.cast(tp, "float"), name="tp")
+
+
         # Calculate Fp
         with tf.name_scope("fp"):
             fp = tf.metrics.false_positives(labels=tf.argmax(self.input_y, 1), predictions=self.predictions)
@@ -167,18 +173,20 @@ class TextRNN(object):
             fn = tf.metrics.false_negatives(labels=tf.argmax(self.input_y, 1), predictions=self.predictions)
             self.fn = tf.reduce_sum(tf.cast(fn, "float"), name="fn")
 
-        # Calculate Recall
-        with tf.name_scope("recall"):
-            self.recall = self.num_correct / (self.num_correct + self.fn)
-
         # Calculate Precision
         with tf.name_scope("precision"):
-            self.precision = self.num_correct / (self.num_correct + self.fp)
+            # self.precision = self.num_correct / (self.num_correct + self.fp)
+            self.precision = self.tp / (self.tp + self.fp)
+
+            # Calculate Recall
+        with tf.name_scope("recall"):
+            # self.recall = self.num_correct / (self.num_correct + self.fn)
+            self.recall = self.tp / (self.tp + self.fn)
 
         # Calculate F1
         with tf.name_scope("F1"):
-            self.F1 = (2 * self.precision * self.recall) / (self.precision + self.recall)
+            self.F1 = tf.add((2 * self.precision * self.recall) / (self.precision + self.recall), 0.00,name="F1")
 
         # Calculate AUC
         with tf.name_scope("AUC"):
-            self.AUC = tf.metrics.auc(self.softmax_scores, self.input_y, name="AUC")
+            self.AUC = tf.metrics.auc(labels=tf.argmax(self.input_y, 1), predictions=self.predictions, name="AUC")
